@@ -406,14 +406,17 @@ void RGBDDataProcessing<DataTypes>::segmentSynth()
 }
 
 template <class DataTypes>
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGBD(cv::Mat& depthImage, cv::Mat& rgbImage)
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGBD(cv::Mat& depthImage, const cv::Mat& rgbImage)
 {
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr outputPointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 	//pcl::PointCloud<pcl::PointXYZRGB> pointcloud; 
-	outputPointcloud->points.resize(0);  
+//	outputPointcloud->points.resize(0);
+    outputPointcloud->clear();
 		
 	int sample;
 	
+    // d2gommer sensortype dans tout les components
+    // use samplePCD instead
     switch (sensorType.getValue())
     {
     // FLOAT ONE CHANNEL
@@ -428,7 +431,6 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
 
 	float rgbFocalInvertedX = 1/rgbIntrinsicMatrix(0,0);	// 1/fx
         float rgbFocalInvertedY = 1/rgbIntrinsicMatrix(1,1);	// 1/fy
-	pcl::PointXYZRGB newPoint;
 
         for (int i=0;i<(int)depthImage.rows/sample;i++)
 	{
@@ -437,16 +439,18 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
 
                         float depthValue = (float)depthImage.at<float>(sample*i,sample*j);//*0.819;
 			int avalue = (int)rgbImage.at<Vec4b>(sample*i,sample*j)[3];
+            cv::imwrite("rwe.png", rgbImage) ;
 			if (avalue > 0 && depthValue>0)                // if depthValue is not NaN
 			{
-				// Find 3D position respect to rgb frame:
-                                newPoint.z = depthValue;
+                // Find 3D position respect to rgb frame:
+                pcl::PointXYZRGB newPoint;
+                newPoint.z = depthValue;
 				newPoint.x = (sample*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
 				newPoint.y = (sample*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
 				newPoint.r = rgbImage.at<cv::Vec4b>(sample*i,sample*j)[2];
 				newPoint.g = rgbImage.at<cv::Vec4b>(sample*i,sample*j)[1];
 				newPoint.b = rgbImage.at<cv::Vec4b>(sample*i,sample*j)[0];
-				outputPointcloud->points.push_back(newPoint);
+                outputPointcloud->points.push_back(newPoint);
 				
 			}
 
@@ -468,7 +472,8 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
 			if (avalue > 0 && depthValue>0)                // if depthValue is not NaN
 			{
 				// Find 3D position respect to rgb frame:
-				newPoint.z = depthValue;
+                pcl::PointXYZRGB newPoint;
+                newPoint.z = depthValue;
 				newPoint.x = (sample1*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
 				newPoint.y = (sample1*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
 				newPoint.r = rgbImage.at<cv::Vec4b>(sample1*i,sample1*j)[2];
@@ -504,8 +509,8 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
                         {
                                 // Find 3D position respect to rgb frame:
                                 newPoint1.z = depthValue;
-                                newPoint1.x = (sample1*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
-                                newPoint1.y = (sample1*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
+                                newPoint1.x = (sample1*j - rgbIntrinsicMatrix(0,2)) * newPoint1.z * rgbFocalInvertedX;
+                                newPoint1.y = (sample1*i - rgbIntrinsicMatrix(1,2)) * newPoint1.z * rgbFocalInvertedY;
                                 outputPointcloud1->points.push_back(newPoint1);
 
 
@@ -594,7 +599,6 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
         pcl::PointCloud<pcl::PointXYZ>::Ptr outputPointcloud1(new pcl::PointCloud<pcl::PointXYZ>);
         outputPointcloud1->points.resize(0);
 
-        pcl::PointXYZ newPoint1;
 
         for (int i=0;i<(int)depthImage.rows/sample1;i++)
         {
@@ -605,9 +609,10 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
                         if (avalue > 0 && depthValue>0)                // if depthValue is not NaN
                         {
                                 // Find 3D position respect to rgb frame:
+                                pcl::PointXYZ newPoint1;
                                 newPoint1.z = depthValue;
-                                newPoint1.x = (sample1*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
-                                newPoint1.y = (sample1*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
+                                newPoint1.x = (sample1*j - rgbIntrinsicMatrix(0,2)) * newPoint1.z * rgbFocalInvertedX;
+                                newPoint1.y = (sample1*i - rgbIntrinsicMatrix(1,2)) * newPoint1.z * rgbFocalInvertedY;
                                 outputPointcloud1->points.push_back(newPoint1);
 
 

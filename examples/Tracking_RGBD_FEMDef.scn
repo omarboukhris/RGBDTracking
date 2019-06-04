@@ -45,7 +45,7 @@
                         sensorType = "1"
                         windowKLT = "5"
                         useDistContourNormal = "0"
-                        segimpl = "1"
+                        segimpl = "0"
                         downscaleimages="1"
                         downscalesegmentation="1"
                         displayimages= "0"

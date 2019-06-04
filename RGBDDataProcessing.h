@@ -264,7 +264,7 @@ public:
     void computeCenter(vpImage<unsigned char> &Itemp, vpImagePoint &cog,double &angle, int &surface);
     void extractTargetPCD();
     void extractTargetPCDContour();
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCDFromRGBD(cv::Mat& depthImage, cv::Mat& rgbImage);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCDFromRGBD(cv::Mat& depthImage, const cv::Mat& rgbImage);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCDContourFromRGBD(cv::Mat& depthImage, cv::Mat& rgbImage, cv::Mat& distImage, cv::Mat& dotImage);
     void setCameraPose();
 
