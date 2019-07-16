@@ -34,6 +34,7 @@
 #include <SofaBaseVisual/InteractiveCamera.h>
 #include <sofa/core/behavior/ForceField.inl>
 #include <sofa/simulation/Simulation.h>
+#include <sofa/helper/AdvancedTimer.h>
 
 #include <algorithm>
 
@@ -99,11 +100,11 @@ template <class DataTypes>
 void VirtualCamera<DataTypes>::handleEvent(sofa::core::objectmodel::Event *event)
 {
     if (dynamic_cast<simulation::AnimateBeginEvent*>(event)) {
-       double timeT = (double)getTickCount();
+       helper::AdvancedTimer::stepBegin("VirtualCam") ;
        if (cameraChanged.getValue()) {
            setCamera();
        }
-       std::cout << "TIME VIRTUAL CAMERA " << ((double)getTickCount() - timeT)/getTickFrequency() << std::endl;
+       helper::AdvancedTimer::stepEnd("VirtualCam") ;
     }
 }
 

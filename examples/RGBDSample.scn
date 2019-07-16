@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<Node name="root" gravity="0 0 0" dt="1"  >
+	<RequiredPlugin name="RGBDTracking" pluginName="RGBDTracking" />
+	<RequiredPlugin name="OpenCVPlugin" pluginName="OpenCVPlugin" />
+<!--
+	<Node name="cam">
+		<RealSenseCam  
+			name="rsCam" 
+			transform="0 0 0 0 0 0 .001 .001 1 0 1 1" 
+			depthTransform="0 0 0 0 0 0 .001 .001 1 0 1 1" 
+			tiltAngle="0"
+		/>
+		<CImg2OpenCV  name="cvConv" cimg="@rsCam.image" />
+	</Node>
+-->
+	<Node name="rgbd_pipeline" >
+	
+		<EulerImplicitSolver rayleighStiffness="0.01" />
+		<CGLinearSolver iterations="20" threshold="0.00000001"  />
+
+		<MeshVTKLoader 
+			name="MeshLoader1"  
+			filename="/home/omar/projects/RGBDTracking/examples/mesh/squirrel10.vtu" 
+		/>
+		<Mesh src="@MeshLoader1" />
+
+		<MechanicalObject 
+			name="dofs1" 
+			src="@MeshLoader1" 
+			rotation="90 -90 0" 
+			translation="0. 0.0 0.70"
+			scale = "1"
+		/>
+		<UniformMass vertexMass="0.2"/>
+
+		<FakeCam 
+			name="fakecam"
+			inputPath = "/home/omar/projects/RGBDTracking/examples/images/imagesInteraction"
+			outputPath = "out/imagesInteraction00001"
+			nimages = "550"
+		/>
+
+		<OpenCVGrabCut
+			name="grabcut"
+			in="@fakecam.image"
+			rectangle="135 40 80 160"
+		/>
+		
+		<PointCloudExtractor
+			name="pclextract"
+			foreground="@grabcut.out"
+			depth="@fakecam.depth"
+			color="@fakecam.image"
+			sigmaWeight = "8"
+			cameraIntrinsicParameters="275.0 275.0 160.0 120.0"
+		/>
+		
+		<VirtualCamera 
+			name="vcam"
+			cameraIntrinsicParameters="@pclextract.cameraIntrinsicParameters"
+			viewportWidth="640"
+			viewportHeight="480"
+			cameraPosition="@pclextract.cameraPosition"
+			cameraOrientation="@pclextract.cameraOrientation"
+			cameraChanged="@pclextract.cameraChanged"
+		/>
+		
+		<MeshProcessing
+			name="mp1"
+			renderingmgr="@../renderingmanager"
+			cameraIntrinsicParameters="@vcam.cameraIntrinsicParameters"
+			niterations = "1"
+			useVisible = "1"
+			useContour = "0"
+			visibilityThreshold = "0.02"
+			sigmaWeight = "8"
+			borderThdSource = "7"
+			drawVisibleMesh="1"
+			useSIFT3D="0"
+		/>
+		<RenderTextureAR 
+			name="rendertexturear"
+			renderingmgr="@../renderingmanager"
+		/>
+	
+		<RegistrationRigid 
+			name="registrationrigid"
+			sourceVisiblePositions="@mp1.sourceVisiblePositions"
+			targetPositions="@pclextract.targetPositions"
+			useVisible = "1"
+			niterations = "2"
+			forceRegistration="0"
+		/>
+		
+		<TetrahedronFEMForceField 
+			name="FEM" 
+			youngModulus="600" 
+			poissonRatio="0.4" 
+			computeGlobalMatrix="false" 
+			method="polar"
+		/>
+		
+		<ClosestPointForceField 
+			name="ipff1" 
+			camera="@fakecam"
+			source="@mp1"
+			target="@pclextract"
+
+			stiffness="1"
+			damping="0"
+			projectToPlane = "0"
+
+			blendingFactor = "0.6"
+			outlierThreshold = "30"
+			rejectBorders ="0"
+			useContour = "0"
+			useVisible = "1"
+			useDistContourNormal = "0"
+		/>
+		
+		<Node name="sourceSurface">
+			<MeshObjLoader 
+				name="pizzaSurface" 
+				filename="/home/omar/projects/RGBDTracking/examples/mesh/squirrel5.obj" 
+				rotation="90 -90 0" 
+				translation="0.0 0.0 0.70" 
+				scale = "1"
+			/>
+			<Mesh src="@pizzaSurface" />
+			<MechanicalObject name="surf" position = "@[-1].position" />
+			<TriangleSetGeometryAlgorithms name="Geometry Algorithms"/>
+
+			<VisualModel name="Visual" color="blue" />
+			<BarycentricMapping input="@../dofs1" output="@Visual" />
+		</Node>
+	</Node>
+	
+	<RenderingManager 
+		name="renderingmanager" 
+		useBBox="true" 
+		BBox="@rgbd_pipeline/mp1.BBox"
+	/>
+
+<!-- 	320/240 -->
+<!--
+	<OpenCVViewer 
+		name="viewer" 
+		image="@rgbd_pipeline/grabcut.out" 
+	/>
+-->
+</Node>

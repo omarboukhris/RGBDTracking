@@ -26,6 +26,12 @@
 #ifndef SOFA_RGBDTRACKING_CLOSESTPOINTFORCEFIELD_H
 #define SOFA_RGBDTRACKING_CLOSESTPOINTFORCEFIELD_H
 
+#include <RGBDTracking/src/PointCloudExtractor.h>
+#include <RGBDTracking/src/image/FakeCam.h>
+#include <RGBDTracking/src/ClosestPoint.h>
+#include <RGBDTracking/src/RGBDDataProcessing.h>
+#include <RGBDTracking/src/MeshProcessing.h>
+
 #include <opencv/cv.h>
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
@@ -35,9 +41,7 @@
 #include <visp/vpKltOpencv.h>
 #include <visp/vpDisplayX.h>
 
-#include "DataIO.h"
 
-#include <image/ImageTypes.h>
 #include <sofa/core/core.h>
 #include <sofa/core/behavior/BaseForceField.h>
 #include <sofa/core/behavior/ForceField.h>
@@ -47,14 +51,11 @@
 #include <sofa/defaulttype/VecTypes.h>
 #include <sofa/helper/vector.h>
 #include <SofaGeneralEngine/NormalsFromPoints.h>
-//#include <sofa/helper/kdTree.inl>
-#include <RGBDTracking/config.h>
-//#include "KalmanFilter.h"
 #include <algorithm>
 #ifdef WIN32
-#include <process.h>
+    #include <process.h>
 #else
-#include <pthread.h>
+    #include <pthread.h>
 #endif
 
 #include <stdlib.h>
@@ -72,10 +73,6 @@
 
 #include <string>
 #include <boost/thread.hpp>
-#include "ClosestPoint.h"
-#include "RGBDDataProcessing.h"
-#include "MeshProcessing.h"
-
 
 using namespace std;
 using namespace cv;
@@ -124,12 +121,12 @@ public:
 
     core::objectmodel::SingleLink<
         ClosestPointForceField<DataTypes>,
-        DataIO<DataTypes>,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_dataio ;
+        FakeCam<DataTypes>,
+        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_cam ;
     core::objectmodel::SingleLink<
         ClosestPointForceField<DataTypes>,
-        RGBDDataProcessing<DataTypes>,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_rgbddataprocess ;
+        PointCloudExtractor<DataTypes>,
+        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_pclextractor ;
     core::objectmodel::SingleLink<
         ClosestPointForceField<DataTypes>,
         MeshProcessing<DataTypes>,

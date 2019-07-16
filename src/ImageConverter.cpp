@@ -45,28 +45,14 @@ namespace rgbdtracking {
 
       // Register in the Factory
       int ImageConverterClass = core::RegisterObject("converts input data each niter steps") //rescaling mainly ?
-    #ifndef SOFA_FLOAT
         .add< ImageConverter<Vec3dTypes,ImageUC> >()
         .add< ImageConverter<Vec3dTypes,ImageUS> >()
         .add< ImageConverter<Vec3dTypes,ImageF> >()
-    #endif
-    #ifndef SOFA_DOUBLE
-        .add< ImageConverter<Vec3fTypes,ImageUC> >()
-        .add< ImageConverter<Vec3fTypes,ImageUS> >()
-        .add< ImageConverter<Vec3fTypes,ImageF> >()
-    #endif
     ;
 
-    #ifndef SOFA_FLOAT
       template class SOFA_RGBDTRACKING_API ImageConverter<Vec3dTypes,ImageUC>;
       template class SOFA_RGBDTRACKING_API ImageConverter<Vec3dTypes,ImageUS>;
       template class SOFA_RGBDTRACKING_API ImageConverter<Vec3dTypes,ImageF>;
-    #endif
-    #ifndef SOFA_DOUBLE
-      template class SOFA_RGBDTRACKING_API ImageConverter<Vec3fTypes,ImageUC>;
-      template class SOFA_RGBDTRACKING_API ImageConverter<Vec3fTypes,ImageUS>;
-      template class SOFA_RGBDTRACKING_API ImageConverter<Vec3fTypes,ImageF>;
-    #endif
 
 
 }

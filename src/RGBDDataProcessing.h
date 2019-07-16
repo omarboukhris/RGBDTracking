@@ -120,19 +120,19 @@ public :
       cv::Mat* frame = (cv::Mat*) param;
 
       switch( event ) {
-          case CV_EVENT_MOUSEMOVE:
+		  case cv::EVENT_MOUSEMOVE:
               if( drawing_box ) {
                   box.width = x-box.x;
                   box.height = y-box.y;
               }
           break;
 
-          case CV_EVENT_LBUTTONDOWN:
+		  case cv::EVENT_LBUTTONDOWN:
               drawing_box = true;
               box = cvRect( x, y, 0, 0 );
           break;
 
-          case CV_EVENT_LBUTTONUP:
+		  case cv::EVENT_LBUTTONUP:
               drawing_box = false;
               if( box.width < 0 ) {
                   box.x += box.width;
@@ -147,7 +147,7 @@ public :
               MouseEventHandler::draw_box(*frame, box);
           break;
 
-          case CV_EVENT_RBUTTONUP:
+		  case cv::EVENT_RBUTTONUP:
               destroy=true;
           break;
 

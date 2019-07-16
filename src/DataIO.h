@@ -90,225 +90,225 @@ public:
  * util class used by data io
  * to store rgbd images in files
  */
-class RGBDFileSystemIO {
-public :
-    RGBDFileSystemIO (std::string outpath, int iter_p)
-        : depth_path     (outpath + "/depth1%06d.png")
-        , depth_path2    (outpath + "/depth2%06d.png")
-        , depthfile_path (outpath + "/depthfile%06d.txt")
+//class RGBDFileSystemIO {
+//public :
+//    RGBDFileSystemIO (std::string outpath, int iter_p)
+//        : depth_path     (outpath + "/depth1%06d.png")
+//        , depth_path2    (outpath + "/depth2%06d.png")
+//        , depthfile_path (outpath + "/depthfile%06d.txt")
 
-        , image_path  (outpath + "/img1%06d.png")
-        , segimg_path (outpath + "/imgseg1%06d.png")
+//        , image_path  (outpath + "/img1%06d.png")
+//        , segimg_path (outpath + "/imgseg1%06d.png")
 
-        , rtt_path            (outpath + "/rtt%06d.png")
-        , rttstress_path      (outpath + "/rttstress%06d.png") //deprecated
-        , rttstressplast_path (outpath + "/rttstressplast%06d.png") //deprected
+//        , rtt_path            (outpath + "/rtt%06d.png")
+//        , rttstress_path      (outpath + "/rttstress%06d.png") //deprecated
+//        , rttstressplast_path (outpath + "/rttstressplast%06d.png") //deprected
 
-        , klt_path (outpath +  + "/imgklt%06d.png")
-        , iter (iter_p)
-    {}
+//        , klt_path (outpath +  + "/imgklt%06d.png")
+//        , iter (iter_p)
+//    {}
 
-    /// reads rgb image
-    cv::Mat read_image () {
-        return cv::imread(process_filename(image_path, iter));
-    }
-    cv::Mat read_segimage () {
-        return cv::imread(process_filename(segimg_path, iter));
-    }
-    cv::Mat read_depths () {
-        return cv::imread(process_filename(segimg_path, iter));
-    }
-    /// write rgbd
-    void write_image (const cv::Mat &I) {
-        cv::imwrite(process_filename(image_path, iter), I) ;
-    }
-    void write_segimage (const cv::Mat &I) {
-        cv::imwrite(process_filename(segimg_path, iter), I) ;
-    }
-    void write_depth (const cv::Mat &I) {
-        cv::imwrite(process_filename(depth_path, iter), I) ;
-    }
-    void write_depth_bis (const cv::Mat &I) {
-        cv::imwrite(process_filename(depth_path2, iter), I) ;
-    }
-    void write_klt (const cv::Mat & I) {
-        cv::imwrite(process_filename(klt_path, iter), I) ;
-    }
-    void write_rtt (const cv::Mat & I) {
-        cv::imwrite(process_filename(rtt_path, iter), I) ;
-    }
-    void write_rtt_stress (const cv::Mat & I) {
-        cv::imwrite(process_filename(rttstress_path, iter), I) ;
-    }
-    void write_rtt_stress_plast (const cv::Mat & I) {
-        cv::imwrite(process_filename(rttstressplast_path, iter), I) ;
-    }
-
-
-    /// depth_files IO
-    cv::Mat read_depth_file() {
-        //create the file stream
-        std::string filename(process_filename(depthfile_path, iter));
-        std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary );
-        if (!file) {
-            std::cerr
-                << "(RGBDFileSystem) Error: "
-                << "can't open the file stream to read depth data"
-            << std::endl ;
-            return cv::Mat::zeros (1,1, CV_32F) ;
-        }
-
-        //declare image parameters
-        int matWidth = 0,
-            matHeight = 0,
-            type = 0 ;
-        //read type and size of the matrix first
-        file.read((char*) &type, sizeof(type));
-        file.read((char*) &matWidth, sizeof(matWidth));
-        file.read((char*) &matHeight, sizeof(matHeight));
-
-        //change Mat type
-        cv::Mat I = cv::Mat::zeros(matHeight, matWidth, type);
-
-        //std::cout << " width " << matWidth << " " << matHeight <<  std::endl;
-
-        //write data depending on the image's type
-        switch (type) {
-            // FLOAT ONE CHANNEL
-            case CV_32F:
-                std::cout << "Reading CV_32F image" << std::endl;
-                read_image_from_stream<float>(I, matHeight, matWidth, file);
-                std::cout << "Read CV_32F image" << std::endl;
-            break;
-            // DOUBLE ONE CHANNEL
-            case CV_64F:
-                std::cout << "Reading CV_64F image" << std::endl;
-                read_image_from_stream<double>(I, matHeight, matWidth, file);
-            break;
-
-            // FLOAT THREE CHANNELS
-            case CV_32FC3:
-                std::cout << "Reading CV_32FC3 image" << std::endl;
-                read_image_from_stream<defaulttype::Vec3f>(I, matHeight, matWidth, file);
-            break;
-
-            // DOUBLE THREE CHANNELS
-            case CV_64FC3:
-                std::cout << "Reading CV_64FC3 image" << std::endl;
-                read_image_from_stream<defaulttype::Vec3d>(I, matHeight, matWidth, file);
-            break;
-            default:
-                std::cerr
-                    << "(RGBDFileSystem) Error: wrong Mat type" << std::endl
-                    << "must be CV_32F, CV_64F, CV_32FC3 or CV_64FC3"
-                << std::endl;
-            break;
-        }
-        //close file
-        file.close();
-
-        return I;
-    }
-    bool write_depth_file (const cv::Mat &I) {
-        std::string filename(process_filename(depthfile_path, iter));
-        //create the file stream
-        std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary );
-        if (!file) {
-            std::cerr
-                << "(RGBDFileSystem) Error: "
-                << "can't open the file stream to read depth data"
-            << std::endl ;
-            return false ;
-        }
-
-        //load the matrix param
-        int
-            matWidth = I.size().width,
-            matHeight = I.size().height,
-            type = I.type();
-
-        //write type and size of the matrix first
-        file.write((const char*) &type, sizeof(type));
-        file.write((const char*) &matWidth, sizeof(matWidth));
-        file.write((const char*) &matHeight, sizeof(matHeight));
-
-        //write data depending on the image's type
-        switch (type) {
-            // FLOAT ONE CHANNEL
-            case CV_32F:
-                std::cout << "Writing CV_32F image" << std::endl;
-                write_image_from_stream<float>(I, matHeight, matWidth, file);
-            break;
-            // DOUBLE ONE CHANNEL
-            case CV_64F:
-                std::cout << "Writing CV_64F image" << std::endl;
-                write_image_from_stream<double>(I, matHeight, matWidth, file);
-            break;
-
-            // FLOAT THREE CHANNELS
-            case CV_32FC3:
-                std::cout << "Writing CV_32FC3 image" << std::endl;
-                write_image_from_stream<defaulttype::Vec3f>(I, matHeight, matWidth, file);
-            break;
-            // DOUBLE THREE CHANNELS
-            case CV_64FC3:
-                std::cout << "Writing CV_64FC3 image" << std::endl;
-                write_image_from_stream<defaulttype::Vec3d>(I, matHeight, matWidth, file);
-            break;
-            default:
-                std::cerr
-                    << "(RGBDFileSystem) Error: wrong Mat type" << std::endl
-                    << "must be CV_32F, CV_64F, CV_32FC3 or CV_64FC3"
-                << std::endl;
-            break;
-        }
-
-        //close file
-        file.close();
-
-        return 0;
-    }
+//    /// reads rgb image
+//    cv::Mat read_image () {
+//        return cv::imread(process_filename(image_path, iter));
+//    }
+//    cv::Mat read_segimage () {
+//        return cv::imread(process_filename(segimg_path, iter));
+//    }
+//    cv::Mat read_depths () {
+//        return cv::imread(process_filename(segimg_path, iter));
+//    }
+//    /// write rgbd
+//    void write_image (const cv::Mat &I) {
+//        cv::imwrite(process_filename(image_path, iter), I) ;
+//    }
+//    void write_segimage (const cv::Mat &I) {
+//        cv::imwrite(process_filename(segimg_path, iter), I) ;
+//    }
+//    void write_depth (const cv::Mat &I) {
+//        cv::imwrite(process_filename(depth_path, iter), I) ;
+//    }
+//    void write_depth_bis (const cv::Mat &I) {
+//        cv::imwrite(process_filename(depth_path2, iter), I) ;
+//    }
+//    void write_klt (const cv::Mat & I) {
+//        cv::imwrite(process_filename(klt_path, iter), I) ;
+//    }
+//    void write_rtt (const cv::Mat & I) {
+//        cv::imwrite(process_filename(rtt_path, iter), I) ;
+//    }
+//    void write_rtt_stress (const cv::Mat & I) {
+//        cv::imwrite(process_filename(rttstress_path, iter), I) ;
+//    }
+//    void write_rtt_stress_plast (const cv::Mat & I) {
+//        cv::imwrite(process_filename(rttstressplast_path, iter), I) ;
+//    }
 
 
-private :
-    template <typename Type>
-    void write_image_from_stream(const cv::Mat &I, int matHeight, int matWidth, std::ofstream & file) {
-        for (int i=0; i < matWidth*matHeight; ++i) {
-            Type value = I.at<Type>(i);
-            file.write((const char*) &value, sizeof(value));
-        }
-    }
+//    /// depth_files IO
+//    cv::Mat read_depth_file() {
+//        //create the file stream
+//        std::string filename(process_filename(depthfile_path, iter));
+//        std::ifstream file(filename.c_str(), std::ios::in | std::ios::binary );
+//        if (!file) {
+//            std::cerr
+//                << "(RGBDFileSystem) Error: "
+//                << "can't open the file stream to read depth data"
+//            << std::endl ;
+//            return cv::Mat::zeros (1,1, CV_32F) ;
+//        }
 
-    template<typename Type>
-    void read_image_from_stream(cv::Mat & I, int matHeight, int matWidth, std::ifstream & file) {
-        for (int i=0; i < matWidth*matHeight; ++i) {
-            Type value ;
-            file.read((char*) &value, sizeof(value));
-            I.at<Type>(i) = value;
-        }
-    }
+//        //declare image parameters
+//        int matWidth = 0,
+//            matHeight = 0,
+//            type = 0 ;
+//        //read type and size of the matrix first
+//        file.read((char*) &type, sizeof(type));
+//        file.read((char*) &matWidth, sizeof(matWidth));
+//        file.read((char*) &matHeight, sizeof(matHeight));
 
-    inline std::string process_filename (std::string path, int index) {
-        char buf[FILENAME_MAX];
-        sprintf(buf, path.c_str(), index);
-        return std::string (buf) ;
-    }
+//        //change Mat type
+//        cv::Mat I = cv::Mat::zeros(matHeight, matWidth, type);
 
-    std::string depth_path ;
-    std::string depthfile_path ;
-    std::string depth_path2 ;
+//        //std::cout << " width " << matWidth << " " << matHeight <<  std::endl;
 
-    std::string image_path ;
-    std::string segimg_path ;
+//        //write data depending on the image's type
+//        switch (type) {
+//            // FLOAT ONE CHANNEL
+//            case CV_32F:
+//                std::cout << "Reading CV_32F image" << std::endl;
+//                read_image_from_stream<float>(I, matHeight, matWidth, file);
+//                std::cout << "Read CV_32F image" << std::endl;
+//            break;
+//            // DOUBLE ONE CHANNEL
+//            case CV_64F:
+//                std::cout << "Reading CV_64F image" << std::endl;
+//                read_image_from_stream<double>(I, matHeight, matWidth, file);
+//            break;
 
-    std::string rtt_path ;
-    std::string rttstress_path ;
-    std::string rttstressplast_path ;
+//            // FLOAT THREE CHANNELS
+//            case CV_32FC3:
+//                std::cout << "Reading CV_32FC3 image" << std::endl;
+//                read_image_from_stream<defaulttype::Vec3f>(I, matHeight, matWidth, file);
+//            break;
 
-    std::string klt_path ;
+//            // DOUBLE THREE CHANNELS
+//            case CV_64FC3:
+//                std::cout << "Reading CV_64FC3 image" << std::endl;
+//                read_image_from_stream<defaulttype::Vec3d>(I, matHeight, matWidth, file);
+//            break;
+//            default:
+//                std::cerr
+//                    << "(RGBDFileSystem) Error: wrong Mat type" << std::endl
+//                    << "must be CV_32F, CV_64F, CV_32FC3 or CV_64FC3"
+//                << std::endl;
+//            break;
+//        }
+//        //close file
+//        file.close();
 
-    int iter ;
-} ;
+//        return I;
+//    }
+//    bool write_depth_file (const cv::Mat &I) {
+//        std::string filename(process_filename(depthfile_path, iter));
+//        //create the file stream
+//        std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary );
+//        if (!file) {
+//            std::cerr
+//                << "(RGBDFileSystem) Error: "
+//                << "can't open the file stream to read depth data"
+//            << std::endl ;
+//            return false ;
+//        }
+
+//        //load the matrix param
+//        int
+//            matWidth = I.size().width,
+//            matHeight = I.size().height,
+//            type = I.type();
+
+//        //write type and size of the matrix first
+//        file.write((const char*) &type, sizeof(type));
+//        file.write((const char*) &matWidth, sizeof(matWidth));
+//        file.write((const char*) &matHeight, sizeof(matHeight));
+
+//        //write data depending on the image's type
+//        switch (type) {
+//            // FLOAT ONE CHANNEL
+//            case CV_32F:
+//                std::cout << "Writing CV_32F image" << std::endl;
+//                write_image_from_stream<float>(I, matHeight, matWidth, file);
+//            break;
+//            // DOUBLE ONE CHANNEL
+//            case CV_64F:
+//                std::cout << "Writing CV_64F image" << std::endl;
+//                write_image_from_stream<double>(I, matHeight, matWidth, file);
+//            break;
+
+//            // FLOAT THREE CHANNELS
+//            case CV_32FC3:
+//                std::cout << "Writing CV_32FC3 image" << std::endl;
+//                write_image_from_stream<defaulttype::Vec3f>(I, matHeight, matWidth, file);
+//            break;
+//            // DOUBLE THREE CHANNELS
+//            case CV_64FC3:
+//                std::cout << "Writing CV_64FC3 image" << std::endl;
+//                write_image_from_stream<defaulttype::Vec3d>(I, matHeight, matWidth, file);
+//            break;
+//            default:
+//                std::cerr
+//                    << "(RGBDFileSystem) Error: wrong Mat type" << std::endl
+//                    << "must be CV_32F, CV_64F, CV_32FC3 or CV_64FC3"
+//                << std::endl;
+//            break;
+//        }
+
+//        //close file
+//        file.close();
+
+//        return 0;
+//    }
+
+
+//private :
+//    template <typename Type>
+//    void write_image_from_stream(const cv::Mat &I, int matHeight, int matWidth, std::ofstream & file) {
+//        for (int i=0; i < matWidth*matHeight; ++i) {
+//            Type value = I.at<Type>(i);
+//            file.write((const char*) &value, sizeof(value));
+//        }
+//    }
+
+//    template<typename Type>
+//    void read_image_from_stream(cv::Mat & I, int matHeight, int matWidth, std::ifstream & file) {
+//        for (int i=0; i < matWidth*matHeight; ++i) {
+//            Type value ;
+//            file.read((char*) &value, sizeof(value));
+//            I.at<Type>(i) = value;
+//        }
+//    }
+
+//    inline std::string process_filename (std::string path, int index) {
+//        char buf[FILENAME_MAX];
+//        sprintf(buf, path.c_str(), index);
+//        return std::string (buf) ;
+//    }
+
+//    std::string depth_path ;
+//    std::string depthfile_path ;
+//    std::string depth_path2 ;
+
+//    std::string image_path ;
+//    std::string segimg_path ;
+
+//    std::string rtt_path ;
+//    std::string rttstress_path ;
+//    std::string rttstressplast_path ;
+
+//    std::string klt_path ;
+
+//    int iter ;
+//} ;
 
 
 template<class DataTypes>

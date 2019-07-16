@@ -79,38 +79,39 @@ using namespace helper;
 
 template <class DataTypes>
 MeshProcessing<DataTypes>::MeshProcessing( )
- : Inherit()
-        , cameraIntrinsicParameters(initData(&cameraIntrinsicParameters,Vector4(),"cameraIntrinsicParameters","camera parameters"))
-        , sourceSurfacePositions(initData(&sourceSurfacePositions,"sourceSurface","Points of the surface of the source mesh."))
-        , sourcePositions(initData(&sourcePositions,"sourcePositions","Points of the mesh."))
-        , sourceVisiblePositions(initData(&sourceVisiblePositions,"sourceVisiblePositions","Visible points of the surface of the mesh."))
-        , sourceVisible(initData(&sourceVisible,"sourceVisible","Visibility of the points of the surface of the mesh."))
-        , sourceBorder(initData(&sourceBorder,"sourceBorder","Points of the border of the mesh."))
-        , sigmaWeight(initData(&sigmaWeight,(Real)4,"sigmaWeight","sigma weights"))
-        , indicesVisible(initData(&indicesVisible,"indicesVisible","Indices of the visible points of the mesh."))
-        , sourceContourPositions(initData(&sourceContourPositions,"sourceContourPositions","Contour points of the surface of the mesh."))
-        , sourceContourNormals(initData(&sourceContourNormals,"sourceContourNormals","Normals to the contour points of the visible surface of the mesh."))
-        , sourceWeights(initData(&sourceWeights,"sourceWeights","Weights of the surface of the mesh."))
-        , sourceTriangles(initData(&sourceTriangles,"sourceTriangles","Triangles of the source mesh."))
-        , sourceNormals(initData(&sourceNormals,"sourceNormals","Normals of the source mesh."))
-        , sourceSurfaceNormals(initData(&sourceSurfaceNormals,"sourceSurfaceNormals","Normals of the surface of the source mesh."))
-        , useContour(initData(&useContour,false,"useContour","Emphasize forces close to the target contours"))
-        , useVisible(initData(&useVisible,true,"useVisible","Use the vertices of the viisible surface of the source mesh"))
-        , visibilityThreshold(initData(&visibilityThreshold,(Real)0.001,"visibilityThreshold","Threshold to determine visible vertices"))
-        , niterations(initData(&niterations,3,"niterations","Number of iterations in the tracking process"))
-        , borderThdSource(initData(&borderThdSource,7,"borderThdSource","border threshold on the source silhouette"))
-        , BBox(initData(&BBox, "BBox", "Bounding box around the rendered scene for glreadpixels"))
-        , drawVisibleMesh(initData(&drawVisibleMesh,false,"drawVisibleMesh"," "))
-        , useSIFT3D(initData(&useSIFT3D,false,"useSIFT3D"," "))
+    : Inherit()
+    , l_renderingmanager(initLink("renderingmgr", "link to RenderingManager component"))
+    , cameraIntrinsicParameters(initData(&cameraIntrinsicParameters,Vector4(),"cameraIntrinsicParameters","camera parameters"))
+
+    //deprecated
+//    , sourceSurfacePositions(initData(&sourceSurfacePositions,"sourceSurface","Points of the surface of the source mesh."))
+//    , sourcePositions(initData(&sourcePositions,"sourcePositions","Points of the mesh."))
+    // output
+    , sourceVisiblePositions(initData(&sourceVisiblePositions,"sourceVisiblePositions","Visible points of the surface of the mesh."))
+    , sourceVisible(initData(&sourceVisible,"sourceVisible","Visibility of the points of the surface of the mesh."))
+    , sourceBorder(initData(&sourceBorder,"sourceBorder","Points of the border of the mesh."))
+    , indicesVisible(initData(&indicesVisible,"indicesVisible","Indices of the visible points of the mesh."))
+    , sourceContourPositions(initData(&sourceContourPositions,"sourceContourPositions","Contour points of the surface of the mesh."))
+    , sourceContourNormals(initData(&sourceContourNormals,"sourceContourNormals","Normals to the contour points of the visible surface of the mesh."))
+    , sourceWeights(initData(&sourceWeights,"sourceWeights","Weights of the surface of the mesh."))
+
+    // component config
+    , sigmaWeight(initData(&sigmaWeight,(Real)4,"sigmaWeight","sigma weights"))
+    , useContour(initData(&useContour,false,"useContour","Emphasize forces close to the target contours"))
+    , useVisible(initData(&useVisible,true,"useVisible","Use the vertices of the viisible surface of the source mesh"))
+    , visibilityThreshold(initData(&visibilityThreshold,(Real)0.001,"visibilityThreshold","Threshold to determine visible vertices"))
+    , niterations(initData(&niterations,3,"niterations","Number of iterations in the tracking process"))
+
+    , borderThdSource(initData(&borderThdSource,7,"borderThdSource","border threshold on the source silhouette"))
+    , BBox(initData(&BBox, "BBox", "Bounding box around the rendered scene for glreadpixels"))
+    , drawVisibleMesh(initData(&drawVisibleMesh,false,"drawVisibleMesh"," "))
+    , useSIFT3D(initData(&useSIFT3D,false,"useSIFT3D"," "))
 {
 
-        this->f_listening.setValue(true);
-        iter_im = 0;
+    this->f_listening.setValue(true);
 
-        hght = 0;
-        wdth = 0;
-
-        timeMeshProcessing = 0;
+    hght = 0;
+    wdth = 0;
 
 }
 
@@ -124,8 +125,8 @@ void MeshProcessing<DataTypes>::init()
 {
 
     this->Inherit::init();
-//    core::objectmodel::BaseContext* context = this->getContext();
-//    mstate = dynamic_cast<sofa::core::behavior::MechanicalState<DataTypes> *>(context->getMechanicalState());
+    core::objectmodel::BaseContext* context = this->getContext();
+    mstate = dynamic_cast<sofa::core::behavior::MechanicalState<DataTypes> *>(context->getMechanicalState());
 //    sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
 //    root->get(renderingmanager);
 
@@ -141,8 +142,8 @@ void MeshProcessing<DataTypes>::init()
     rectRtt.height = 2*camParam[2];
     rectRtt.width = 2*camParam[3];
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    glEnable(GL_DEPTH_TEST);
 
 }
 
@@ -150,138 +151,125 @@ template<class DataTypes>
 void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 {
 
-    int t = (int)this->getContext()->getTime();
-    //if (t%2 == 0)
-    {
-        cv::Mat _rtd0, depthr;
-        l_renderingmanager->getDepths(depthr);
-        depthrend = depthr.clone();
+//    int t = (int)this->getContext()->getTime();
 
-        wdth = depthr.cols;
-        hght = depthr.rows;
+    cv::Mat _rtd0, depthr;
+	l_renderingmanager->getDepths(depthr);
+	depthrend = depthr.clone();
 
-        _rtd0.create(hght,wdth, CV_8UC1);
-        double depthsN[hght * wdth ];
+	wdth = depthr.cols;
+	hght = depthr.rows;
 
-        std::vector<cv::Point> ptfgd;
-        ptfgd.resize(0);
-        cv::Point pt;
-        double clip_z;
-        //double timef0 = (double)getTickCount();
+	_rtd0.create(hght,wdth, CV_8UC1);
+	double depthsN[hght * wdth ];
 
-        for (int j = 0; j < wdth; j++)
-            for (int i = 0; i< hght; i++)
-            {
-                if ((double)depthr.at<float>(hght-i-1,j) < 1  && (double)depthr.at<float>(hght-i-1,j)	> 0.001)
-                {
-                    //if (j >= rectRtt.x && j < rectRtt.x + rectRtt.width && i >= rectRtt.y && i < rectRtt.y + rectRtt.height) {
-                    //if ((double)(float)depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)]	< 1){
+	std::vector<cv::Point> ptfgd;
+	ptfgd.resize(0);
+	cv::Point pt;
+    double clip_z;
 
-                    clip_z = (depthr.at<float>(hght-i-1,j) - 0.5) * 2.0;
-                    //double clip_z = (depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)] - 0.5) * 2.0;
-                    depthsN[j+i*wdth] = 2*znear*zfar/(clip_z*(zfar-znear)-(zfar+znear));
+	for (int j = 0; j < wdth; j++) {
+		for (int i = 0; i< hght; i++) {
+			if ((double)depthr.at<float>(hght-i-1,j) < 1  && 
+				(double)depthr.at<float>(hght-i-1,j) > 0.001) {
+				//if (j >= rectRtt.x && j < rectRtt.x + rectRtt.width && i >= rectRtt.y && i < rectRtt.y + rectRtt.height) {
+				//if ((double)(float)depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)]	< 1){
 
-                    //std::cout << " dpethsN " <<  depthsN[j+i*wdth] << std::endl;
+                clip_z = (depthr.at<float>(hght-i-1,j) - 0.5) * 2.0;
+				//double clip_z = (depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)] - 0.5) * 2.0;
+				depthsN[j+i*wdth] = 2*znear*zfar/(clip_z*(zfar-znear)-(zfar+znear));
 
-                    if ( depthsN[j+i*wdth] > -10 && depthsN[j+i*wdth] < -0.05)
-                    {
-                    pt.x = j;
-                    pt.y = i;
-                    ptfgd.push_back(pt);
-                    _rtd0.at<uchar>(hght-i-1,j) = 255;
+				//std::cout << " dpethsN " <<  depthsN[j+i*wdth] << std::endl;
 
-                    }
-                    else _rtd0.at<uchar>(hght-i-1,j) = 0;
+				if ( depthsN[j+i*wdth] > -10 && depthsN[j+i*wdth] < -0.05) {
+					pt.x = j;
+					pt.y = i;
+					ptfgd.push_back(pt);
+					_rtd0.at<uchar>(hght-i-1,j) = 255;
+				} else {
+					_rtd0.at<uchar>(hght-i-1,j) = 0;
+				}
 
-                }
-                else
-                {
-                    _rtd0.at<uchar>(hght-i-1,j) = 0;
-                    depthsN[j+i*wdth] = 0;
-                }
+			} else {
+				_rtd0.at<uchar>(hght-i-1,j) = 0;
+				depthsN[j+i*wdth] = 0;
+			}
 
-            }
+		}
+	}
+	
+	cv::Rect rectrtt = cv::boundingRect(ptfgd);
 
-        {
-            cv::Rect rectrtt = cv::boundingRect(ptfgd);
+	if (ptfgd.size()==0) {
+		rectRtt.x = 0;
+		rectRtt.y = 0;
+		rectRtt.height = hght;
+		rectRtt.width = wdth;
+	} else {
+		rectRtt = rectrtt;
 
-            if (ptfgd.size()==0)
-            {
-                rectRtt.x = 0;
-                rectRtt.y = 0;
-                rectRtt.height = hght;
-                rectRtt.width = wdth;
-            }
-            else //if ((double)rectrtt.height/rectRtt.height - 1 < 0.2 && (double)rectrtt.width/rectRtt.width - 1 < 0.2)
-            {
-                rectRtt = rectrtt;
+		if (rectRtt.x >=10)
+			rectRtt.x -= 10;
+		if (rectRtt.y >=10)
+			rectRtt.y -= 10;
+		if (rectRtt.y + rectRtt.height < hght - 20)
+			rectRtt.height += 20;
+		if (rectRtt.x + rectRtt.width < wdth - 20)
+			rectRtt.width += 20;
 
-            if (rectRtt.x >=10)
-            rectRtt.x -= 10;
-            if (rectRtt.y >=10)
-            rectRtt.y -= 10;
-            if (rectRtt.y + rectRtt.height < hght - 20)
-            rectRtt.height += 20;
-            if (rectRtt.x + rectRtt.width < wdth - 20)
-            rectRtt.width += 20;
+		std::cout << " rect1 " << rectRtt.x << " " << rectRtt.y << " rect2 " << rectRtt.width << " " << rectRtt.height << std::endl;
+	}
 
-            std::cout << " rect1 " << rectRtt.x << " " << rectRtt.y << " rect2 " << rectRtt.width << " " << rectRtt.height << std::endl;
-                        }
+	depthMap = _rtd0.clone();
+	/*depthr.convertTo(depthu, CV_8UC1, 10);
+	cv::namedWindow("depth_map");
+	cv::imshow("depth_map",depthMap);
+	cv::waitKey(1);
+	cv::imwrite("depth000.png",depthMap);
+	//cv::imwrite("depth01.png", depthMap);*/
 
-        depthMap = _rtd0.clone();
-        /*depthr.convertTo(depthu, CV_8UC1, 10);
-        cv::namedWindow("depth_map");
-        cv::imshow("depth_map",depthMap);
-        cv::waitKey(1);
-        cv::imwrite("depth000.png",depthMap);
-        //cv::imwrite("depth01.png", depthMap);*/
+	Vector4 bbox;
+	bbox[0] = rectRtt.x;
+	bbox[1] = rectRtt.y;
+	bbox[2] = rectRtt.width;
+	bbox[3] = rectRtt.height;
+	BBox.setValue(bbox);
 
-            Vector4 bbox;
-            bbox[0] = rectRtt.x;
-            bbox[1] = rectRtt.y;
-            bbox[2] = rectRtt.width;
-            bbox[3] = rectRtt.height;
-            BBox.setValue(bbox);
-        }
-        const VecCoord& x = mstate->read(core::ConstVecCoordId::position())->getValue();
+    //add the squirrel meshes for this line to work
+    const VecCoord& x = mstate->read(core::ConstVecCoordId::position())->getValue();
 
-        helper::vector<bool> sourcevisible;
-        sourcevisible.resize(x.size());
-        VecCoord sourceVis;
-        Vector3 pos;
+    helper::vector<bool> sourcevisible;
+	sourcevisible.resize(x.size());
+	VecCoord sourceVis;
+	Vector3 pos;
 
-        helper::vector< int > indicesvisible;
-        indicesvisible.resize(0);
+	helper::vector< int > indicesvisible;
+	indicesvisible.resize(0);
 
-        for (unsigned int k = 0; k < x.size(); k++)
-        {
-            int x_u = (int)(x[k][0]*rgbIntrinsicMatrix(0,0)/x[k][2] + rgbIntrinsicMatrix(0,2));
-            int x_v = (int)(x[k][1]*rgbIntrinsicMatrix(1,1)/x[k][2] + rgbIntrinsicMatrix(1,2));
+	for (unsigned int k = 0; k < x.size(); k++) {
+		int x_u = (int)(x[k][0]*rgbIntrinsicMatrix(0,0)/x[k][2] + rgbIntrinsicMatrix(0,2));
+		int x_v = (int)(x[k][1]*rgbIntrinsicMatrix(1,1)/x[k][2] + rgbIntrinsicMatrix(1,2));
 
-            if (x_u>=0 && x_u<wdth && x_v<hght && x_v >= 0){
-                if((float)abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() ||
-                   (float)depthsN[x_u+(hght-x_v-1)*wdth] == 0
-                ) {
-                    sourcevisible[k] = true;
-                    pos = x[k];
-                    sourceVis.push_back(pos);
-                    indicesvisible.push_back(k);
-                }
-                else
-                {
-                    sourcevisible[k] = false;
-                }
-            }
-            else {sourcevisible[k] = false;}
+		if (x_u>=0 && x_u<wdth && x_v<hght && x_v >= 0){
+			if((float)abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() ||
+				(float)depthsN[x_u+(hght-x_v-1)*wdth] == 0
+			) {
+				sourcevisible[k] = true;
+				pos = x[k];
+				sourceVis.push_back(pos);
+				indicesvisible.push_back(k);
+			} else {
+				sourcevisible[k] = false;
+			}
+		} else {
+			sourcevisible[k] = false;
+		}
+	}
 
-        }
-
-        //std::cout << " nvisible " << sourceVis.size() << " xsize " << sourcevisible.size() <<  std::endl;
-        sourceVisiblePositions.setValue(sourceVis);
-        sourceVisible.setValue(sourcevisible);
-        indicesVisible.setValue(indicesvisible);
-
-    }
+    std::cout << " nvisible " << sourceVis.size() << " xsize " << sourcevisible.size() <<  std::endl;
+	sourceVisiblePositions.setValue(sourceVis);
+	sourceVisible.setValue(sourcevisible);
+	indicesVisible.setValue(indicesvisible);
 }
 
 template<class DataTypes>
@@ -597,12 +585,16 @@ void MeshProcessing<DataTypes>::handleEvent(sofa::core::objectmodel::Event *even
         helper::AdvancedTimer::stepBegin ("MeshProcessing") ;
 
         if ( (int)this->getContext()->getTime() %niterations.getValue() == 0) {
+            if (l_renderingmanager == NULL) {
+                std::cerr << "(MeshProcessing) link to renderingManager component is NULL" << std::endl ;
+                return ;
+            }
             if(useContour.getValue() && !useVisible.getValue()) {
                 extractSourceContour();
             } else {
                 cv::Mat depthr;
-                l_renderingmanager->getDepths(depthr);
-                depthrend = depthr.clone();
+                l_renderingmanager->getDepths(depthrend);
+                //depthrend = depthr.clone();
                 double znear = l_renderingmanager->getZNear();
                 double zfar = l_renderingmanager->getZFar();
                 if (!depthrend.empty()) {
@@ -639,18 +631,16 @@ void MeshProcessing<DataTypes>::draw(const core::visual::VisualParams* vparams)
     ReadAccessor< Data< VecCoord > > xvisible(sourceVisiblePositions);
     vparams->drawTool()->saveLastState();
 
-        if (drawVisibleMesh.getValue() && xvisible.size() > 0)
-        {
-            std::vector< sofa::defaulttype::Vector3 > points;
-            sofa::defaulttype::Vector3 point;
+    if (drawVisibleMesh.getValue() && xvisible.size() > 0) {
+        std::vector< sofa::defaulttype::Vector3 > points;
+        sofa::defaulttype::Vector3 point;
 
-            for (unsigned int i=0; i< xvisible.size(); i++)
-            {
-                point = DataTypes::getCPos(xvisible[i]);
-                points.push_back(point);
-                vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5,0.5,1,1));
-            }
+        for (unsigned int i=0; i< xvisible.size(); i++) {
+            point = DataTypes::getCPos(xvisible[i]);
+            points.push_back(point);
+            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5,0.5,1,1));
         }
+    }
 
 }
 

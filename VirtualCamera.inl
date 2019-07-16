@@ -100,7 +100,7 @@ void VirtualCamera<DataTypes>::setCamera()
 template <class DataTypes>
 void VirtualCamera<DataTypes>::handleEvent(sofa::core::objectmodel::Event *event)
 {
-        if (dynamic_cast<simulation::AnimateBeginEvent*>(event))
+    if (dynamic_cast<simulation::AnimateBeginEvent*>(event))
 	{	
        double timeT = (double)getTickCount();
        if (cameraChanged.getValue())

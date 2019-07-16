@@ -67,121 +67,130 @@ class ClosestPointInternalData
 public:
 };
 
+/*
+* DetectBorder
+* initSourceSurface
+* updateSourceSurface
+* updateClosestPointsContoursNormals
+* 
+* 
+* aren't used anymore
+*/
+
 template<class DataTypes>
 class ClosestPoint : public sofa::core::objectmodel::BaseObject
 {
 public:
-    SOFA_CLASS(SOFA_TEMPLATE(ClosestPoint,DataTypes),sofa::core::objectmodel::BaseObject);
+	SOFA_CLASS(SOFA_TEMPLATE(ClosestPoint,DataTypes),sofa::core::objectmodel::BaseObject);
 
-    typedef sofa::core::objectmodel::BaseObject Inherit;
+	typedef sofa::core::objectmodel::BaseObject Inherit;
 	
-    typedef typename DataTypes::Real Real;
-    typedef typename DataTypes::Coord Coord;
-    typedef typename DataTypes::Deriv Deriv;
-    typedef typename DataTypes::VecCoord VecCoord;
-    typedef typename DataTypes::VecReal VecReal;
-    typedef typename DataTypes::VecDeriv VecDeriv;
-    typedef Data<typename DataTypes::VecCoord> DataVecCoord;
-    typedef Data<typename DataTypes::VecDeriv> DataVecDeriv;
-    typedef sofa::defaulttype::Vector4 Vector4;
-    typedef sofa::defaulttype::Vector2 Vec2;
+	typedef typename DataTypes::Real Real;
+	typedef typename DataTypes::Coord Coord;
+	typedef typename DataTypes::Deriv Deriv;
+	typedef typename DataTypes::VecCoord VecCoord;
+	typedef typename DataTypes::VecReal VecReal;
+	typedef typename DataTypes::VecDeriv VecDeriv;
+	typedef Data<typename DataTypes::VecCoord> DataVecCoord;
+	typedef Data<typename DataTypes::VecDeriv> DataVecDeriv;
+	typedef sofa::defaulttype::Vector4 Vector4;
+	typedef sofa::defaulttype::Vector2 Vec2;
 
-    typedef core::behavior::MechanicalState<DataTypes> MechanicalState;
-    typename core::behavior::MechanicalState<DataTypes> *mstate;
-    
-    enum { N=DataTypes::spatial_dimensions };
-    typedef defaulttype::Mat<N,N,Real> Mat;
+	typedef core::behavior::MechanicalState<DataTypes> MechanicalState;
+	typename core::behavior::MechanicalState<DataTypes> *mstate;
+	
+	enum { N=DataTypes::spatial_dimensions };
+	typedef defaulttype::Mat<N,N,Real> Mat;
 
-    typedef helper::fixed_array <unsigned int,3> tri;
-    typedef helper::kdTree<Coord> KDT;
-    typedef typename KDT::distanceSet distanceSet;
+	typedef helper::fixed_array <unsigned int,3> tri;
+	typedef helper::kdTree<Coord> KDT;
+	typedef typename KDT::distanceSet distanceSet;
 
 public:
-    ClosestPoint();
-    virtual ~ClosestPoint();
+	ClosestPoint();
+	virtual ~ClosestPoint();
 
-    /*static std::string templateName(const ClosestPoint<DataTypes >* = NULL) { return DataTypes::Name()+ std::string(",");    }
-    virtual std::string getTemplateName() const    { return templateName(this);    }*/
+	/*static std::string templateName(const ClosestPoint<DataTypes >* = NULL) { return DataTypes::Name()+ std::string(",");    }
+	virtual std::string getTemplateName() const    { return templateName(this);    }*/
 	
-    // -- baseobject interface
-    void init();
+	// -- baseobject interface
+	void init();
 
-    void filterCorrespondences();
-    void updateClosestPoints();
-    void updateClosestPointsSoft();
-    void updateClosestPointsPCL();
-    void updateClosestPointsContours();
-    void updateClosestPointsVisibleContours();
-    void updateClosestPointsContoursNormals();
+	void updateClosestPoints(); //
+	void updateClosestPointsContours(); //
 
-    // algorithm param, should be changed to simple data or something
-    Data<Real> blendingFactor;
-    Data<Real> outlierThreshold;
-    Data<bool> rejectBorders;
-    Data<bool> useVisible;
-    Data<bool> useDistContourNormal;
+	void initSource(); // built k-d tree and identify border vertices
+	void initSourceVisible(); // built k-d tree and identify border vertices
 
-    defaulttype::BoundingBox targetBbox;
+	// accessors
+	vector< distanceSet > getClosestSource(){return closestSource;}
+	vector< distanceSet > getClosestTarget(){return closestTarget;}
 
-
-    // source mesh data
-    Data< VecCoord > sourcePositions;
-    Data< VecCoord > sourceVisiblePositions;
-    Data< helper::vector< tri > > sourceTriangles;
-    Data< VecCoord > sourceNormals;
-    Data< VecCoord > sourceSurfacePositions;
-    Data< VecCoord > sourceSurfaceNormals;
-    Data< VecCoord > sourceSurfaceNormalsM;
-    Data< VecCoord > sourceContourPositions;
-    Data< helper::vector< Vec2 > > sourceContourNormals;
-
-    vector< distanceSet >  closestSource; // CacheSize-closest target points from source
-    vector< Real > cacheDist;
-    vector< Real > cacheDist2;
-    VecCoord previousX; // storage for cache acceleration
-
-    KDT sourceKdTree;
-    vector< bool > sourceBorder;
-    vector< bool > sourceIgnored;  // flag ignored vertices
-    vector< bool > sourceSurface;
-    std::vector<int> indices;
-
-    void initSource(); // built k-d tree and identify border vertices
-    void initSourceVisible(); // built k-d tree and identify border vertices
-    void initSourceSurface(); // built k-d tree and identify border vertices
-    void updateSourceSurface(); // built k-d tree and identify border vertices
+	vector< bool > getSourceIgnored(){return sourceIgnored;}
+	vector< bool > getTargetIgnored(){return targetIgnored;}
 	
-
-    // target point cloud data
-    Data< VecCoord > targetPositions;
-    Data< VecCoord > targetGtPositions;
-    Data< VecCoord > targetNormals;
-    vector< bool > targetIgnored;  // flag ignored vertices
-    Data< VecCoord > targetContourPositions;
-
-    KDT targetKdTree;
-    KDT targetContourKdTree;
-
-    std::vector<int> indicesTarget;
-    helper::vector< bool > targetBorder;
-    helper::vector< distanceSet >  closestTarget; // CacheSize-closest source points from target
-
-    void initTarget();  // built k-d tree and identify border vertices
-    void initTargetContour();  // built k-d tree and identify border vertices
-
-    Eigen::Matrix3f rgbIntrinsicMatrix;
+	vector< int > getIndices(){return indices;}
+	vector< int > getIndicesTarget(){return indicesTarget;}
 	
-    // accessors
-    vector< distanceSet > getClosestSource(){return closestSource;}
-    vector< distanceSet > getClosestTarget(){return closestTarget;}
+	// algorithm param, should be changed to simple data or something
+	Data<Real> blendingFactor;
+	Data<Real> outlierThreshold;
+	Data<bool> rejectBorders;
+	Data<bool> useVisible;
+	Data<bool> useDistContourNormal;
 
-    vector< bool > getSourceIgnored(){return sourceIgnored;}
-    vector< bool > getTargetIgnored(){return targetIgnored;}
-	
-    vector< int > getIndices(){return indices;}
-    vector< int > getIndicesTarget(){return indicesTarget;}
-	
-    void detectBorder(vector<bool> &border,const helper::vector< tri > &triangles);
+	defaulttype::BoundingBox targetBbox;
+
+
+	// source mesh data
+	Data< VecCoord > sourcePositions;
+	Data< VecCoord > sourceVisiblePositions;
+	Data< helper::vector< tri > > sourceTriangles;
+	Data< VecCoord > sourceNormals;
+	Data< VecCoord > sourceSurfacePositions;
+	Data< VecCoord > sourceSurfaceNormals;
+	Data< VecCoord > sourceSurfaceNormalsM;
+	Data< VecCoord > sourceContourPositions;
+	Data< helper::vector< Vec2 > > sourceContourNormals;
+
+	vector< distanceSet >  closestSource; // CacheSize-closest target points from source
+	vector< Real > cacheDist;
+	vector< Real > cacheDist2;
+	VecCoord previousX; // storage for cache acceleration
+
+	KDT sourceKdTree;
+	vector< bool > sourceBorder;
+	vector< bool > sourceIgnored;  // flag ignored vertices
+	vector< bool > sourceSurface;
+	std::vector<int> indices;
+
+	// target point cloud data
+	Data< VecCoord > targetPositions;
+	Data< VecCoord > targetGtPositions;
+	Data< VecCoord > targetNormals;
+	vector< bool > targetIgnored;  // flag ignored vertices
+	Data< VecCoord > targetContourPositions;
+
+	KDT targetKdTree;
+	KDT targetContourKdTree;
+
+	std::vector<int> indicesTarget;
+	helper::vector< bool > targetBorder;
+	helper::vector< distanceSet >  closestTarget; // CacheSize-closest source points from target
+
+	void initTarget();  // built k-d tree and identify border vertices
+	void initTargetContour();  // built k-d tree and identify border vertices
+
+	Eigen::Matrix3f rgbIntrinsicMatrix;
+
+private :
+
+    static void getNClosest (KDT & kdtree, vector<distanceSet> & closestgeom, const VecCoord & veccoord, const VecCoord & positions) ;
+
+    static void rejectBorder (const vector<distanceSet> & closestGeom, const vector<bool> & borderGeom, vector<bool> & ignoredGeom) ;
+    static void ignoreElement (const vector<distanceSet> & closestGeom, vector<bool> & ignoredGeom, Real mean) ;
+    static void sum_meanStdev (const vector<distanceSet> & closestGeom, Real & mean, Real & stdev, Real & count) ;
+
 };
 
 

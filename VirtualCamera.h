@@ -102,7 +102,6 @@ public:
     Data<int> viewportWidth;
 
     Data<bool> cameraChanged;
-    double timePCD;
 	
     VirtualCamera();
     virtual ~VirtualCamera();

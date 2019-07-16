@@ -62,20 +62,10 @@ SOFA_DECL_CLASS(ClosestPointForceField)
 
 // Register in the Factory
 int ClosestPointForceFieldClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-//#ifndef SOFA_FLOAT
     .add< ClosestPointForceField<sofa::defaulttype::Vec3dTypes> >()
-//#endif
-//#ifndef SOFA_DOUBLE
-//    .add< ClosestPointForceField<Vec3fTypes> >()
-//#endif
 ;
 
-//#ifndef SOFA_FLOAT
     template class SOFA_RGBDTRACKING_API ClosestPointForceField<Vec3dTypes>;
-//#endif
-//#ifndef SOFA_DOUBLE
-//    template class SOFA_RGBDTRACKING_API ClosestPointForceField<Vec3fTypes>;
-//#endif
 
 using namespace helper;
 
@@ -83,8 +73,8 @@ using namespace helper;
 template <class DataTypes>
 ClosestPointForceField<DataTypes>::ClosestPointForceField(core::behavior::MechanicalState<DataTypes> *mm )
     : Inherit(mm)
-    , l_dataio(initLink("dataio", "Link to dataio component"))
-    , l_rgbddataprocess(initLink("target", "Link to RGBDDataProcessing component"))
+    , l_cam(initLink("camera", "Link to RGBD camera component"))
+    , l_pclextractor(initLink("target", "Link to RGBDDataProcessing component"))
     , l_meshprocessing(initLink("source", "Link to MeshProcessing component"))
 
     , ks(initData(&ks,(Real)0.0,"stiffness","uniform stiffness for the all springs."))
@@ -98,7 +88,7 @@ ClosestPointForceField<DataTypes>::ClosestPointForceField(core::behavior::Mechan
     , rejectBorders(initData(&rejectBorders,false,"rejectBorders","ignore border vertices."))
     , useContour(initData(&useContour,false,"useContour","Emphasize forces close to the target contours"))
     , useVisible(initData(&useVisible,true,"useVisible","Use the vertices of the viisible surface of the source mesh"))
-    , useDistContourNormal(initData(&useDistContourNormal,false,"useVisible","Use the vertices of the visible surface of the source mesh"))
+    , useDistContourNormal(initData(&useDistContourNormal,false,"useDistContourNormal","Use the vertices of the visible surface of the source mesh"))
     , cameraIntrinsicParameters(initData(&cameraIntrinsicParameters,Vector4(),"cameraIntrinsicParameters","camera parameters"))
 
 
@@ -320,7 +310,7 @@ void ClosestPointForceField<DataTypes>::KLTPointsTo3D()
         const int kk = k;
         tracker.getFeature(kk, id, xp, yp);
 
-        cv::Mat depth = l_dataio->depth ;
+        cv::Mat depth = l_cam->depth ;
         float depthValue = (float)depth.at<float>(yp,xp);
         if ( depthValue>0 && depthValue < 1) {
             // if depthValue is not NaN
@@ -352,33 +342,29 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
     std::cout << "IN" << std::endl ;
     int t = (int)this->getContext()->getTime();
 
-    sofa::helper::vector< tri > triangles;
-    triangles = l_meshprocessing->sourceTriangles.getValue();
+//    sofa::helper::vector< tri > triangles;
+//    triangles = l_meshprocessing->sourceTriangles.getValue();
 
     helper::vector< bool > sourcevisible = l_meshprocessing->sourceVisible.getValue();
     helper::vector< int > indicesvisible = l_meshprocessing->indicesVisible.getValue();
     helper::vector< bool > sourceborder = l_meshprocessing->sourceBorder.getValue();
 
-    if (t%niterations.getValue() == 0) {
-        if (npoints != (this->mstate->read(core::ConstVecCoordId::position())->getValue()).size()) {
-            reinit();
-        }
-        npoints = (this->mstate->read(core::ConstVecCoordId::position())->getValue()).size();
-    }
-
     VecDeriv& f = *_f.beginEdit();       //WDataRefVecDeriv f(_f);
     const VecCoord& x = _x.getValue();			//RDataRefVecCoord x(_x);
     const VecDeriv& v = _v.getValue();			//RDataRefVecDeriv v(_v);
-    ReadAccessor< Data< VecCoord > > tn(l_rgbddataprocess->targetNormals);
-    ReadAccessor< Data< VecCoord > > tp(l_rgbddataprocess->targetPositions);
-    ReadAccessor< Data< VecCoord > > tcp(l_rgbddataprocess->targetContourPositions);
+    ReadAccessor< Data< VecCoord > > tn(l_pclextractor->targetNormals);
+    ReadAccessor< Data< VecCoord > > tp(l_pclextractor->targetPositions);
+    ReadAccessor< Data< VecCoord > > tcp(l_pclextractor->targetContourPositions);
 
     if (t%niterations.getValue() == 0) {
+		if (npoints != (this->mstate->read(core::ConstVecCoordId::position())->getValue()).size()) {
+            reinit();
+        }
+        npoints = (this->mstate->read(core::ConstVecCoordId::position())->getValue()).size();
         f_.resize(f.size());
         x_.resize(x.size());
         v_.resize(v.size());
     }
-    std::cout << "IN" << std::endl ;
 
     const vector<Spring>& s = this->springs.getValue();
     this->dfdx.resize(s.size());
@@ -398,60 +384,60 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
 
     //closestpoint->updateClosestPointsGt();
 
-    cv::Mat distimg = l_rgbddataprocess->seg.distImage;
-    cv::Mat foreg = l_rgbddataprocess->foreground;
+//    cv::Mat distimg = l_pclextractor->seg.distImage;
+//    cv::Mat foreg = l_pclextractor->foreground;
 
-    cv::Mat depth = l_dataio->depth;
-    if (useKLTPoints.getValue()) {
-        cv::Mat gray;
+    cv::Mat depth = l_cam->depth;
+//    if (useKLTPoints.getValue()) {
+//        cv::Mat gray;
 
-        cvtColor(foreg,gray,CV_BGR2GRAY);
-        cv::Mat gray1;
-        cv::flip(gray,gray1,0);
-        vpImage<unsigned char> vpI ;
-        vpImageConvert::convert(gray,vpI);
+//        cvtColor(foreg,gray,CV_BGR2GRAY);
+//        cv::Mat gray1;
+//        cv::flip(gray,gray1,0);
+//        vpImage<unsigned char> vpI ;
+//        vpImageConvert::convert(gray,vpI);
 
-        vpDisplayX display;
-        if (t == 0) {
-            display.init(vpI, 100, 100,"Display...") ;
-            // Display the image
-            vpDisplay::display(vpI) ;
-            vpDisplay::flush(vpI) ;
+//        vpDisplayX display;
+//        if (t == 0) {
+//            display.init(vpI, 100, 100,"Display...") ;
+//            // Display the image
+//            vpDisplay::display(vpI) ;
+//            vpDisplay::flush(vpI) ;
 
-            // Point detection using Harris. In input we have an OpenCV image
-            tracker.initTracking(gray);
-            tracker1.initTracking(gray);
-            tracker.display(vpI, vpColor::red);
-        } else if (t >= 3){
-            if (t == 3 || t%(windowKLT.getValue()*1) ==0 ) {
-                tracker.initTracking(gray);
-                tracker1.initTracking(gray);
-                mappingkltcoef.resize(tracker.getMaxFeatures());
-                mappingkltind.resize(tracker.getMaxFeatures());
-                mapKLTPointsTriangles(triangles);
-            }
-            cvtColor(foreg,gray,CV_BGR2GRAY);
+//            // Point detection using Harris. In input we have an OpenCV image
+//            tracker.initTracking(gray);
+//            tracker1.initTracking(gray);
+//            tracker.display(vpI, vpColor::red);
+//        } else if (t >= 3){
+//            if (t == 3 || t%(windowKLT.getValue()*1) ==0 ) {
+//                tracker.initTracking(gray);
+//                tracker1.initTracking(gray);
+//                mappingkltcoef.resize(tracker.getMaxFeatures());
+//                mappingkltind.resize(tracker.getMaxFeatures());
+//                mapKLTPointsTriangles(triangles);
+//            }
+//            cvtColor(foreg,gray,CV_BGR2GRAY);
 
-            cv::flip(gray,gray1,0);
-            vpImageConvert::convert(gray,vpI);
-            // Display the image
-            vpDisplay::display(vpI) ;
-            // Tracking of the detected points
-            tracker.track(gray);
-            tracker1.track(gray);
+//            cv::flip(gray,gray1,0);
+//            vpImageConvert::convert(gray,vpI);
+//            // Display the image
+//            vpDisplay::display(vpI) ;
+//            // Tracking of the detected points
+//            tracker.track(gray);
+//            tracker1.track(gray);
 
-            // Display the tracked points
-            tracker.display(vpI, vpColor::red);
-            vpDisplay::flush(vpI) ;
-            vpImage<vpRGBa> Icol;
-            cv::Mat icol;
-            display.getImage(Icol);
-            vpImageConvert::convert(Icol,icol);
+//            // Display the tracked points
+//            tracker.display(vpI, vpColor::red);
+//            vpDisplay::flush(vpI) ;
+//            vpImage<vpRGBa> Icol;
+//            cv::Mat icol;
+//            display.getImage(Icol);
+//            vpImageConvert::convert(Icol,icol);
 
-            KLTPointsTo3D();
+//            KLTPointsTo3D();
 
-        }
-    }
+//        }
+//    }
 
     closestpoint->sourcePositions.setValue(this->mstate->read(core::ConstVecCoordId::position())->getValue());
 
@@ -459,9 +445,9 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
         closestpoint->sourceVisiblePositions.setValue(l_meshprocessing->sourceVisiblePositions.getValue());
     }
 
-    closestpoint->targetPositions.setValue(l_rgbddataprocess->targetPositions.getValue());
-    closestpoint->targetBorder = l_rgbddataprocess->targetBorder.getValue();
-    closestpoint->sourceSurfacePositions.setValue(l_meshprocessing->sourceSurfacePositions.getValue());
+    closestpoint->targetPositions.setValue(l_pclextractor->targetPositions.getValue());
+    closestpoint->targetBorder = l_pclextractor->targetBorder.getValue();
+//    closestpoint->sourceSurfacePositions.setValue(l_meshprocessing->sourceSurfacePositions.getValue());
     closestpoint->sourceBorder = l_meshprocessing->sourceBorder.getValue();
 
 //    time = (double)getTickCount();
@@ -478,9 +464,9 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
         helper::AdvancedTimer::stepBegin("ClosestPoint") ;
         if (!useContour.getValue()) {
             closestpoint->updateClosestPoints();
-        } else if ((l_rgbddataprocess->targetContourPositions.getValue()).size() > 0 &&
+        } else if ((l_pclextractor->targetContourPositions.getValue()).size() > 0 &&
                    (l_meshprocessing->sourceContourPositions.getValue()).size()>0 ) {
-            closestpoint->targetContourPositions.setValue(l_rgbddataprocess->targetContourPositions.getValue());
+            closestpoint->targetContourPositions.setValue(l_pclextractor->targetContourPositions.getValue());
             closestpoint->sourceContourPositions.setValue(l_meshprocessing->sourceContourPositions.getValue());
             closestpoint->sourceContourNormals.setValue(l_meshprocessing->sourceContourNormals.getValue());
             closestpoint->updateClosestPointsContours();
@@ -529,7 +515,7 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
             unsigned int id;
             if (!useVisible.getValue() &&
                 useContour.getValue() &&
-                l_rgbddataprocess->targetContourPositions.getValue().size() > 0
+                l_pclextractor->targetContourPositions.getValue().size() > 0
             ) {
                 for (unsigned int i=0; i<s.size(); i++) {
                     unsigned int id=closestpoint->closestSource[i].begin()->second;
@@ -569,7 +555,7 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
                         closestPos[i]+=x[i]*attrF;
                     }
                 }
-            } else if (useContour.getValue() && l_rgbddataprocess->targetContourPositions.getValue().size() > 0) {
+            } else if (useContour.getValue() && l_pclextractor->targetContourPositions.getValue().size() > 0) {
                 for (unsigned int i=0; i<s.size(); i++) {
                     std::cout << "ii " << i<< " " << sourcevisible.size() << std::endl;
 
@@ -619,7 +605,7 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
 
         // attraction
         if(attrF>0 && t > niterations.getValue() &&
-          (!useVisible.getValue() || l_rgbddataprocess->targetContourPositions.getValue().size() > 0)
+          (!useVisible.getValue() || l_pclextractor->targetContourPositions.getValue().size() > 0)
         ) {
             for (unsigned int i=0; i<tp.size(); i++) {
                 unsigned int id=closestpoint->closestTarget[i].begin()->second;
@@ -652,35 +638,35 @@ void ClosestPointForceField<DataTypes>::addForceMesh(const core::MechanicalParam
     }
 
 
-    if (useKLTPoints.getValue() &&
-        t >= startimageklt.getValue()
-    ){
-        VecCoord  targetKLTPos = targetKLTPositions.getValue();
-        for (unsigned int k = 0; k < static_cast<unsigned int>(tracker.getNbFeatures()); k++){
-            long id;
-            float xp0, yp0;
-            tracker.getFeature(k, id, xp0, yp0);
-            int x0 = (int)xp0,
-                y0 = (int)yp0;
-            Vector3 coefs = mappingkltcoef[id];
-            int index = mappingkltind[id];
+//    if (useKLTPoints.getValue() &&
+//        t >= startimageklt.getValue()
+//    ){
+//        VecCoord  targetKLTPos = targetKLTPositions.getValue();
+//        for (unsigned int k = 0; k < static_cast<unsigned int>(tracker.getNbFeatures()); k++){
+//            long id;
+//            float xp0, yp0;
+//            tracker.getFeature(k, id, xp0, yp0);
+//            int x0 = (int)xp0,
+//                y0 = (int)yp0;
+//            Vector3 coefs = mappingkltcoef[id];
+//            int index = mappingkltind[id];
 
-            float depthValue = (float)depth.at<float>(yp0,xp0);
-            int avalue = (int)distimg.at<uchar>(yp0,xp0);
+//            float depthValue = (float)depth.at<float>(yp0,xp0);
+//            int avalue = (int)distimg.at<uchar>(yp0,xp0);
 
-           if( depthValue < 1 &&
-               depthValue > 0 &&
-               avalue > 10 &&
-               foreg.at<cv::Vec4b>(y0,x0)[3] > 0
-            ){
-               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][0], s[triangles[index][0]], 0.3*coefs[0]);
-               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][1], s[triangles[index][1]], 0.3*coefs[1]);
-               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][2], s[triangles[index][2]], 0.3*coefs[2]);
-            }
+//           if( depthValue < 1 &&
+//               depthValue > 0 &&
+//               avalue > 10 &&
+//               foreg.at<cv::Vec4b>(y0,x0)[3] > 0
+//            ){
+//               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][0], s[triangles[index][0]], 0.3*coefs[0]);
+//               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][1], s[triangles[index][1]], 0.3*coefs[1]);
+//               this->addSpringForceKLTA(potentialEnergy,f,x,v, targetKLTPos[id], triangles[index][2], s[triangles[index][2]], 0.3*coefs[2]);
+//            }
 
-        }
-       //getchar();
-    }
+//        }
+//       //getchar();
+//    }
     m_potentialEnergy = potentialEnergy ;
     _f.endEdit();
 }
@@ -767,7 +753,7 @@ void ClosestPointForceField<DataTypes>::addSpringForceWeight(double& potentialEn
             int k = (int)closestpoint->closestSource[ivis].begin()->second;
 
             if(!closestpoint->targetIgnored[k]) {
-                stiffweight = (double)l_rgbddataprocess->targetWeights.getValue()[k];
+                stiffweight = (double)l_pclextractor->targetWeights.getValue()[k];
             } else {
                 stiffweight = 1;
             }
@@ -934,68 +920,68 @@ void ClosestPointForceField<DataTypes>::addKToMatrix(sofa::defaulttype::BaseMatr
 template<class DataTypes>
 void ClosestPointForceField<DataTypes>::draw(const core::visual::VisualParams* vparams)
 {
-    if (! l_rgbddataprocess || ! l_meshprocessing || ! l_dataio) {
-        std::cerr << "ClosestPtForceField : link for meshprocessing and/or rbgddataprocessing and/or dataio is not available" << std::endl ;
-        return ;
-    }
-    std::vector< Vector3 > points;
-    //const vector<Spring>& springs = this->springs.getValue();
-    const VecCoord& x = this->mstate->read(core::ConstVecCoordId::position())->getValue();
-    points.resize(0);
+//    if (! l_pclextractor || ! l_meshprocessing || ! l_cam) {
+//        std::cerr << "ClosestPtForceField : link for meshprocessing and/or rbgddataprocessing and/or dataio is not available" << std::endl ;
+//        return ;
+//    }
+//    std::vector< Vector3 > points;
+//    //const vector<Spring>& springs = this->springs.getValue();
+//    const VecCoord& x = this->mstate->read(core::ConstVecCoordId::position())->getValue();
+//    points.resize(0);
 
-    sofa::helper::vector< tri > triangles;
-    triangles = l_meshprocessing->sourceTriangles.getValue();
+//    sofa::helper::vector< tri > triangles;
+//    triangles = l_meshprocessing->sourceTriangles.getValue();
 
-//    std::cout << " XSIZE " << x.size() << std::endl;
+////    std::cout << " XSIZE " << x.size() << std::endl;
 
-    int t = (int)this->getContext()->getTime();
+//    int t = (int)this->getContext()->getTime();
 
-    if (l_rgbddataprocess->targetPositions.getValue().size()>0 && l_meshprocessing->sourceVisiblePositions.getValue().size()>0) {
-        for (unsigned int i=0; i<x.size(); i++) {
-            points.resize(0);
-            Vector3 point = DataTypes::getCPos(x[i]);
-            points.push_back(point);
-        }
-    }
+//    if (l_pclextractor->targetPositions.getValue().size()>0 && l_meshprocessing->sourceVisiblePositions.getValue().size()>0) {
+//        for (unsigned int i=0; i<x.size(); i++) {
+//            points.resize(0);
+//            Vector3 point = DataTypes::getCPos(x[i]);
+//            points.push_back(point);
+//        }
+//    }
 
-    points.resize(0);
+//    points.resize(0);
 
-    Vector3 coefs;
-    int index;
-    long id;
-    float xp0, yp0;
-    int x0, y0;
+//    Vector3 coefs;
+//    int index;
+//    long id;
+//    float xp0, yp0;
+//    int x0, y0;
 
-//    sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
-//    typename rgbdtracking::RGBDDataProcessing<DataTypes>::SPtr rgbddataprocessing;
-//    root->get(rgbddataprocessing);
+////    sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
+////    typename rgbdtracking::RGBDDataProcessing<DataTypes>::SPtr rgbddataprocessing;
+////    root->get(rgbddataprocessing);
 
-    cv::Mat distimg = l_rgbddataprocess->seg.distImage;
-    cv::Mat foreg = l_rgbddataprocess->foreground;
+//    cv::Mat distimg = l_pclextractor->seg.distImage;
+//    cv::Mat foreg = l_pclextractor->foreground;
 
-    cv::Mat depth = l_dataio->depth ;
-    if (useKLTPoints.getValue() && t >= startimageklt.getValue() && t%(niterations.getValue()) == 0){
-        VecCoord targetKLTPos = targetKLTPositions.getValue();
-        for (unsigned int k = 0; k < static_cast<unsigned int>(tracker.getNbFeatures()); k++){
-           tracker.getFeature(k, id, xp0, yp0);
-           x0 = (int)xp0;
-           y0 = (int)yp0;
-           coefs = mappingkltcoef[id];
-           index = mappingkltind[id];
-           float depthValue;
-           int avalue;
-           depthValue = (float)depth.at<float>(yp0,xp0);
-           avalue = (int)distimg.at<uchar>(yp0,xp0);
+//    cv::Mat depth = l_cam->depth ;
+//    if (useKLTPoints.getValue() && t >= startimageklt.getValue() && t%(niterations.getValue()) == 0){
+//        VecCoord targetKLTPos = targetKLTPositions.getValue();
+//        for (unsigned int k = 0; k < static_cast<unsigned int>(tracker.getNbFeatures()); k++){
+//           tracker.getFeature(k, id, xp0, yp0);
+//           x0 = (int)xp0;
+//           y0 = (int)yp0;
+//           coefs = mappingkltcoef[id];
+//           index = mappingkltind[id];
+//           float depthValue;
+//           int avalue;
+//           depthValue = (float)depth.at<float>(yp0,xp0);
+//           avalue = (int)distimg.at<uchar>(yp0,xp0);
 
-           if( depthValue < 1 && depthValue > 0 && avalue > 2 && foreg.at<cv::Vec4b>(y0,x0)[3] > 0){
-               Vector3 point1 = DataTypes::getCPos(targetKLTPos[id]);
-               Vector3 point2 = (coefs[0]*DataTypes::getCPos(x[triangles[index][0]]) + coefs[1]*DataTypes::getCPos(x[triangles[index][1]]) + coefs[2]*DataTypes::getCPos(x[triangles[index][2]]));
-               points.push_back(point1);
-               points.push_back(point2);
-           }
+//           if( depthValue < 1 && depthValue > 0 && avalue > 2 && foreg.at<cv::Vec4b>(y0,x0)[3] > 0){
+//               Vector3 point1 = DataTypes::getCPos(targetKLTPos[id]);
+//               Vector3 point2 = (coefs[0]*DataTypes::getCPos(x[triangles[index][0]]) + coefs[1]*DataTypes::getCPos(x[triangles[index][1]]) + coefs[2]*DataTypes::getCPos(x[triangles[index][2]]));
+//               points.push_back(point1);
+//               points.push_back(point2);
+//           }
 
-        }
-    }
+//        }
+//    }
 }
 
 }

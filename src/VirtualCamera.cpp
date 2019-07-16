@@ -55,28 +55,16 @@ namespace rgbdtracking {
 
     using namespace sofa::defaulttype;
 
-      SOFA_DECL_CLASS(VirtualCamera)
+    SOFA_DECL_CLASS(VirtualCamera)
 
-      // Register in the Factory
-      int VirtualCameraClass = core::RegisterObject("Defines a virtual camera component")
-    #ifndef SOFA_FLOAT
-        .add< VirtualCamera<Vec3dTypes> >()
-    #endif
-    #ifndef SOFA_DOUBLE
-        .add< VirtualCamera<Vec3fTypes> >()
-    #endif
+    // Register in the Factory
+    int VirtualCameraClass = core::RegisterObject("Defines a virtual camera component")
+    .add< VirtualCamera<Vec3dTypes> >()
     ;
 
-    #ifndef SOFA_FLOAT
-      template class SOFA_RGBDTRACKING_API VirtualCamera<Vec3dTypes>;
-    #endif
-    #ifndef SOFA_DOUBLE
-      template class SOFA_RGBDTRACKING_API VirtualCamera<Vec3fTypes>;
-
-    #endif
-
-using namespace helper;
+    template class SOFA_RGBDTRACKING_API VirtualCamera<Vec3dTypes>;
 
 }
+
 } // namespace sofa
 

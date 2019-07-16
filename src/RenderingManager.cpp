@@ -109,13 +109,20 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
 
     helper::AdvancedTimer::stepBegin("Rendering") ;
 
+    double znear, zfar ;
     if (l_currentcamera) {
-        // useless ??
-        double znear = l_currentcamera->getZNear();
-        double zfar = l_currentcamera->getZFar();
-        zNear.setValue(znear);
-        zFar.setValue(zfar);
+        znear = l_currentcamera->getZNear();
+        zfar = l_currentcamera->getZFar();
+    } else {
+        sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
+        sofa::component::visualmodel::BaseCamera::SPtr currentCamera;
+        root->get(currentCamera);
+
+        znear = currentCamera->getZNear();
+        zfar = currentCamera->getZFar();
     }
+    zNear.setValue(znear);
+    zFar.setValue(zfar);
 
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT,viewport);
@@ -170,7 +177,7 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
         }
     }
     helper::AdvancedTimer::stepEnd("Rendering") ;
-//    std::cout << "OUT" << std::endl ;
+    std::cout << "OUT" << std::endl ;
     delete depths;
 
 }

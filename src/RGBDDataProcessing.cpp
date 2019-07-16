@@ -58,21 +58,10 @@ SOFA_DECL_CLASS(RGBDDataProcessing)
 
 // Register in the Factory
 int RGBDDataProcessingClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-#ifndef SOFA_FLOAT
     .add< RGBDDataProcessing<Vec3dTypes> >()
-#endif
-#ifndef SOFA_DOUBLE
-    .add< RGBDDataProcessing<Vec3fTypes> >()
-#endif
     ;
 
-#ifndef SOFA_FLOAT
   template class SOFA_RGBDTRACKING_API RGBDDataProcessing<Vec3dTypes>;
-#endif
-#ifndef SOFA_DOUBLE
-  template class SOFA_RGBDTRACKING_API RGBDDataProcessing<Vec3fTypes>;
-
-#endif
 
 } // rgbd tracking
 

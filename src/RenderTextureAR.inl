@@ -60,6 +60,7 @@ template <class DataTypes>
 RenderTextureAR<DataTypes>::RenderTextureAR()
  : Inherit()
  , niterations(initData(&niterations,1,"niterations","Number of images"))
+ , l_renderingmanager(initLink("renderingmgr", "Link to RenderingManager component"))
 {
     this->f_listening.setValue(true);
 
@@ -85,13 +86,17 @@ template<class DataTypes>
 void RenderTextureAR<DataTypes>::handleEvent(sofa::core::objectmodel::Event *event)
 {
     if (dynamic_cast<simulation::AnimateBeginEvent*>(event)) {
+        if (l_renderingmanager == NULL) {
+            std::cerr << "(RenderTextureAR) link to renderingManager component is NULL" << std::endl ;
+            return ;
+        }
         cv::Mat _rtt;
         l_renderingmanager->getTexture(_rtt);
 
         if ((int)this->getContext()->getTime() % niterations.getValue() == 0) {
             cv::Mat* irtt = new cv::Mat;
-            *irtt = _rtt.clone();
-            l_dataio->listrtt.push_back(irtt);
+            *irtt = _rtt.clone(); // is output
+//            l_dataio->listrtt.push_back(irtt);
         }
     }
 }

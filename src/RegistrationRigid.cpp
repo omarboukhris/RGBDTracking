@@ -72,20 +72,10 @@ namespace rgbdtracking {
 
     // Register in the Factory
     int RegistrationRigidClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-    #ifndef SOFA_FLOAT
         .add< RegistrationRigid<Vec3dTypes> >()
-    #endif
-    #ifndef SOFA_DOUBLE
-        .add< RegistrationRigid<Vec3fTypes> >()
-    #endif
     ;
 
-    #ifndef SOFA_FLOAT
         template class SOFA_RGBDTRACKING_API RegistrationRigid<Vec3dTypes>;
-    #endif
-    #ifndef SOFA_DOUBLE
-        template class SOFA_RGBDTRACKING_API RegistrationRigid<Vec3fTypes>;
-    #endif
 
 using namespace helper;
 
@@ -93,15 +83,18 @@ using namespace helper;
 template <class DataTypes>
 RegistrationRigid<DataTypes>::RegistrationRigid()
     : Inherit()
-    , l_rgbddataprocessing(initLink("target", "Link to RGBDDataProcessing component"))
-    , l_meshprocessing(initLink("source", "Link to MeshProcessing Component"))
-
+    // Input
+//    , l_rgbddataprocessing(initLink("target", "Link to RGBDDataProcessing component"))
+//    , l_meshprocessing(initLink("source", "Link to MeshProcessing Component"))
+    , d_targetPositions(initData(&d_targetPositions, "targetPositions", "Data link to target position"))
+    , d_sourceVisiblePositions(initData(&d_sourceVisiblePositions, "sourceVisiblePositions", "Data link to source's visible elements"))
+    // method config
     , useVisible(initData(&useVisible,true,"useVisible","Use the vertices of the viisible surface of the source mesh"))
     , forceRegistration(initData(&forceRegistration,true,"forceRegistration","soft registration through ICP based forces"))
     , niterations(initData(&niterations,3,"niterations","Number of iterations in the tracking process"))
     , startimage(initData(&startimage,1,"startimage","Frame index to start rigid registration"))
     , stopAfter(initData(&stopAfter,300000,"stopafter", "rigid state"))
-    , MeshToPointCloud(initData(&MeshToPointCloud,true,"meshToPointCloud", "rigid state"))
+    , MeshToPointCloud(initData(&MeshToPointCloud,false,"meshToPointCloud", "rigid state"))
 
     //output
 	,translation(initData(&translation,"translation", "translation parameters"))
@@ -144,7 +137,7 @@ void RegistrationRigid<DataTypes>::determineRigidTransformation ()
     pcl::PointCloud<pcl::PointXYZ>::Ptr source_registered;
 
     const VecCoord& x = mstate->read(core::ConstVecCoordId::position())->getValue();
-    const VecCoord&  tp = l_rgbddataprocessing->targetPositions.getValue();
+    const VecCoord&  tp = d_targetPositions.getValue();
 	
     unsigned int nbs=x.size(),nbt=tp.size();
 	
@@ -188,6 +181,9 @@ void RegistrationRigid<DataTypes>::determineRigidTransformation ()
 
     // Register
     registration.align (*source_registered);
+    std::cout << "has converged:" << registration.hasConverged()
+              << " score: " << registration.getFitnessScore() << std::endl;
+    std::cout << registration.getFinalTransformation() << std::endl;
 
     Eigen::Matrix4f transformation_matrix1 = registration.getFinalTransformation();
     Eigen::Matrix4f transformation_matrix = transformation_matrix1.inverse();
@@ -269,8 +265,8 @@ void RegistrationRigid<DataTypes>::determineRigidTransformation ()
 template <class DataTypes>
 void RegistrationRigid<DataTypes>::determineRigidTransformationVisible () {
     const VecCoord& x0 = mstate->read(core::ConstVecCoordId::position())->getValue();
-    const VecCoord& x = l_meshprocessing->sourceVisiblePositions.getValue();
-    const VecCoord&  tp = l_rgbddataprocessing->targetPositions.getValue();
+    const VecCoord& x = d_sourceVisiblePositions.getValue();
+    const VecCoord&  tp = d_targetPositions.getValue();
 	
     unsigned int nbs=x.size(),nbt=tp.size(), nbs0 = x0.size();
 
@@ -334,22 +330,23 @@ void RegistrationRigid<DataTypes>::determineRigidTransformationVisible () {
         //registration->setInputCloud(source_segmented_);
         registration.setInputTarget (target);
     }
-    registration.setMaxCorrespondenceDistance(0.05);
+    registration.setMaxCorrespondenceDistance(0.35);
     //registration.setMaxCorrespondenceDistance(0.04);
-    registration.setTransformationEpsilon (0.000001);
+    registration.setTransformationEpsilon (0.00001);
     registration.setMaximumIterations (100);
 
     // Register
     registration.align (*source_registered);
+    std::cout << "has converged:" << registration.hasConverged()
+              << " score: " << registration.getFitnessScore() << std::endl;
+    std::cout << registration.getFinalTransformation() << std::endl;
 
-    Eigen::Matrix4f transformation_matrix1 = registration.getFinalTransformation();
-    Eigen::Matrix4f transformation_matrix ;
+    Eigen::Matrix4f transformation_matrix = registration.getFinalTransformation();
     if (MeshToPointCloud.getValue()) {
-        transformation_matrix = transformation_matrix1.inverse();
-    } else {
-        transformation_matrix = transformation_matrix1;
+        transformation_matrix = transformation_matrix.inverse();
     }
-  
+    //std::cout << "Transformation mat : " << transformation_matrix << std::endl ;
+
     Eigen::Matrix3f mat;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j< 3;j ++) {
@@ -438,58 +435,58 @@ void RegistrationRigid<DataTypes>::determineRigidTransformationVisible () {
 template <class DataTypes>
 double RegistrationRigid<DataTypes>::determineErrorICP ()
 {
-    const VecCoord& x = l_meshprocessing->sourceSurfacePositions.getValue();
-    const VecCoord&  tp = l_rgbddataprocessing->targetPositions.getValue();
+//    const VecCoord& x = l_meshprocessing->sourceSurfacePositions.getValue();
+//    const VecCoord&  tp = l_rgbddataprocessing->targetPositions.getValue();
 	
-    unsigned int nbs=x.size(),nbt=tp.size();
+//    unsigned int nbs=x.size(),nbt=tp.size();
 	
-    pcl::PointCloud<pcl::PointXYZ>::Ptr sourceSurfacePointCloud;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr sourceSurfacePointCloud_registered;
-    sourceSurfacePointCloud.reset(new pcl::PointCloud<pcl::PointXYZ>);
-    sourceSurfacePointCloud_registered.reset(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr sourceSurfacePointCloud;
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr sourceSurfacePointCloud_registered;
+//    sourceSurfacePointCloud.reset(new pcl::PointCloud<pcl::PointXYZ>);
+//    sourceSurfacePointCloud_registered.reset(new pcl::PointCloud<pcl::PointXYZ>);
 	
-    pcl::PointXYZ newPoint;
-    for (unsigned int i=0; i < nbs; i++) {
-        newPoint.z = x[i][2];
-        newPoint.x = x[i][0];
-        newPoint.y = x[i][1];
-        /*newPoint.r = 0;
-        newPoint.g = 0;
-        newPoint.b = 0;*/
-        sourceSurfacePointCloud->points.push_back(newPoint);
-        //std::cout << "  " << x[i][0] << " " << x[i][1] << " " << x[i][2] << std::endl;
-	} 
+//    pcl::PointXYZ newPoint;
+//    for (unsigned int i=0; i < nbs; i++) {
+//        newPoint.z = x[i][2];
+//        newPoint.x = x[i][0];
+//        newPoint.y = x[i][1];
+//        /*newPoint.r = 0;
+//        newPoint.g = 0;
+//        newPoint.b = 0;*/
+//        sourceSurfacePointCloud->points.push_back(newPoint);
+//        //std::cout << "  " << x[i][0] << " " << x[i][1] << " " << x[i][2] << std::endl;
+//	}
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr target;
-    target.reset(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr target;
+//    target.reset(new pcl::PointCloud<pcl::PointXYZ>);
 
-    for (unsigned int i=0; i < nbt; i++) {
-        newPoint.z = tp[i][2];
-        newPoint.x = tp[i][0];
-        newPoint.y = tp[i][1];
-        /*newPoint.r = 0;
-        newPoint.g = 0;
-        newPoint.b = 0;*/
-        target->points.push_back(newPoint);
-        //std::cout << " x source  " << x[i][0] << " " << x[i][1] << " " << x[i][2] << std::endl;
-    }
+//    for (unsigned int i=0; i < nbt; i++) {
+//        newPoint.z = tp[i][2];
+//        newPoint.x = tp[i][0];
+//        newPoint.y = tp[i][1];
+//        /*newPoint.r = 0;
+//        newPoint.g = 0;
+//        newPoint.b = 0;*/
+//        target->points.push_back(newPoint);
+//        //std::cout << " x source  " << x[i][0] << " " << x[i][1] << " " << x[i][2] << std::endl;
+//    }
 	
-    cout << "final registration..." << std::flush;
-    pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration1 (new pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>);
-    //registration1->setInputCloud(rgbddataprocessing->targetPointCloud);
-    registration1->setInputSource(target);
-    //registration->setInputCloud(source_segmented_);
-    registration1->setInputTarget (sourceSurfacePointCloud);
-    registration1->setMaxCorrespondenceDistance(0.10);
-    registration1->setRANSACOutlierRejectionThreshold (0.1);
-    registration1->setTransformationEpsilon (0.000001);
-    registration1->setMaximumIterations (100);
+//    cout << "final registration..." << std::flush;
+//    pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration1 (new pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>);
+//    //registration1->setInputCloud(rgbddataprocessing->targetPointCloud);
+//    registration1->setInputSource(target);
+//    //registration->setInputCloud(source_segmented_);
+//    registration1->setInputTarget (sourceSurfacePointCloud);
+//    registration1->setMaxCorrespondenceDistance(0.10);
+//    registration1->setRANSACOutlierRejectionThreshold (0.1);
+//    registration1->setTransformationEpsilon (0.000001);
+//    registration1->setMaximumIterations (100);
 
-    registration1->align(*sourceSurfacePointCloud_registered);
+//    registration1->align(*sourceSurfacePointCloud_registered);
 
-    double fitnessscore;
-    fitnessscore = registration1->getFitnessScore(1000);
-    return fitnessscore;
+//    double fitnessscore;
+//    fitnessscore = registration1->getFitnessScore(1000);
+//    return fitnessscore;
 }
 
 template <class DataTypes>
@@ -508,18 +505,13 @@ void RegistrationRigid<DataTypes>::RegisterRigid()
     if (t >= startimage.getValue() &&
         t % niterations.getValue() == 0
     ){
-        if (!useVisible.getValue()) {
+        if (useVisible.getValue()) {
+            determineRigidTransformationVisible();
+        } else if (t < stopAfter.getValue() && t < 10) {
             determineRigidTransformation();
-        } else {
-            if (t < stopAfter.getValue()){
-                if (t < 10) {
-                    determineRigidTransformation();
-                } else {
-                    determineRigidTransformationVisible();
-                }
-            }
         }
-    helper::AdvancedTimer::stepEnd("RigidICP") ;
+
+        helper::AdvancedTimer::stepEnd("RigidICP") ;
 	}
 }
             

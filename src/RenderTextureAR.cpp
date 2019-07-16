@@ -58,20 +58,10 @@ namespace rgbdtracking {
 
     // Register in the Factory
     int RenderTextureARClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-    #ifndef SOFA_FLOAT
-        .add< RenderTextureAR<Vec3dTypes> >()
-    #endif
-    #ifndef SOFA_DOUBLE
-        .add< RenderTextureAR<Vec3fTypes> >()
-    #endif
+    .add< RenderTextureAR<Vec3dTypes> >()
     ;
 
-    #ifndef SOFA_FLOAT
       template class SOFA_RGBDTRACKING_API RenderTextureAR<Vec3dTypes>;
-    #endif
-    #ifndef SOFA_DOUBLE
-      template class SOFA_RGBDTRACKING_API RenderTextureAR<Vec3fTypes>;
-    #endif
 
 }
 

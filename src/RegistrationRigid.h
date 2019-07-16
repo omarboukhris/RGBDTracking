@@ -85,19 +85,6 @@
 using namespace std;
 using namespace cv;
 
-typedef struct {
-  // for softassign
-  sofa::defaulttype::Vector3 coef; 
-  int triangle;   // parameter for outliers (see the original Softassign paper). default: 3.0
-   
-} mapping;
-
-typedef struct point_struct{
-  double x;
-  double y; 
-  double z;
-}point_struct;
-
 namespace sofa {
 
 namespace rgbdtracking {
@@ -112,7 +99,6 @@ public:
 
     typedef sofa::core::objectmodel::BaseObject Inherit;
     typedef defaulttype::ImageF DepthTypes;
-    int npoints;
 
     typedef typename DataTypes::Real Real;
     typedef typename DataTypes::Coord Coord;
@@ -145,15 +131,20 @@ public:
 	
 protected :
 	
-    core::objectmodel::SingleLink<
-        RegistrationRigid<DataTypes>,
-        RGBDDataProcessing<DataTypes>,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_rgbddataprocessing;
-    core::objectmodel::SingleLink<
-        RegistrationRigid<DataTypes>,
-        MeshProcessing<DataTypes>,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_meshprocessing;
+//    core::objectmodel::SingleLink<
+//        RegistrationRigid<DataTypes>,
+//        RGBDDataProcessing<DataTypes>,
+//        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_rgbddataprocessing;
+//    core::objectmodel::SingleLink<
+//        RegistrationRigid<DataTypes>,
+//        MeshProcessing<DataTypes>,
+//        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_meshprocessing;
 
+    // Input
+    Data<VecCoord> d_targetPositions ;
+    Data<VecCoord> d_sourceVisiblePositions ;
+
+    // Method config
     Data<bool> useVisible;
     Data<bool> forceRegistration;
     Data<int> niterations;
@@ -161,11 +152,11 @@ protected :
     Data<int> stopAfter;
     Data<bool> MeshToPointCloud;
 
+    // Output
     Data< VecReal > translation;
     Data< VecReal > rotation;
     Data< VecCoord > rigidForces;
 
-    // Number of iterations
 
     sofa::core::behavior::MechanicalState< DataTypes > *mstateRigid;
 

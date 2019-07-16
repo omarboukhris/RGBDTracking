@@ -16,17 +16,16 @@
 * along with this library; if not, write to the Free Software Foundation,     *
 * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.          *
 *******************************************************************************
-*                               SOFA :: Modules                               *
+*                               SOFA :: Plugins                               *
 *                                                                             *
 * Authors: The SOFA Team and external contributors (see Authors.txt)          *
 *                                                                             *
 * Contact information: contact@sofa-framework.org                             *
 ******************************************************************************/
+#define SOFA_RGBDTRACKING_PointCloudExtractor_CPP
 
-#define SOFA_RGBDTRACKING_DATAIO_CPP
 
-
-#include "DataIO.inl"
+#include "PointCloudExtractor.inl"
 
 #include <sofa/core/ObjectFactory.h>
 #include <sofa/core/visual/VisualParams.h>
@@ -38,6 +37,8 @@
 #include <sofa/gui/BaseGUI.h>
 #include <sofa/gui/BaseViewer.h>
 #include <sofa/gui/GUIManager.h>
+#include <iostream>
+#include <map>
 
 #ifdef USING_OMP_PRAGMAS
     #include <omp.h>
@@ -47,24 +48,22 @@
 using std::cerr;
 using std::endl;
 
-namespace sofa {
+namespace sofa
+{
 
-namespace rgbdtracking {
-
+namespace rgbdtracking
+{
     using namespace sofa::defaulttype;
 
-    SOFA_DECL_CLASS(DataIO)
+    SOFA_DECL_CLASS(PointCloudExtractor)
 
     // Register in the Factory
-    int DataIOClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-        .add< DataIO<Vec3dTypes> >()
-    ;
+    int PointCloudExtractorClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
+    .add< PointCloudExtractor<Vec3dTypes> >() ;
 
-      template class SOFA_RGBDTRACKING_API DataIO<Vec3dTypes>;
+    template class SOFA_RGBDTRACKING_API PointCloudExtractor<Vec3dTypes>;
 
-using namespace helper;
-
-} // rgbdtracking
+}
 
 } // namespace sofa
 

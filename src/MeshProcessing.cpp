@@ -59,22 +59,10 @@ namespace rgbdtracking {
 
     // Register in the Factory
     int MeshProcessingClass = core::RegisterObject("Compute forces based on closest points from/to a target surface/point set")
-    #ifndef SOFA_FLOAT
-        .add< MeshProcessing<Vec3dTypes> >()
-    #endif
-    #ifndef SOFA_DOUBLE
-        .add< MeshProcessing<Vec3fTypes> >()
-    #endif
+    .add< MeshProcessing<Vec3dTypes> >()
     ;
 
-    #ifndef SOFA_FLOAT
-        template class SOFA_RGBDTRACKING_API MeshProcessing<Vec3dTypes>;
-    #endif
-    #ifndef SOFA_DOUBLE
-        template class SOFA_RGBDTRACKING_API MeshProcessing<Vec3fTypes>;
-    #endif
-
-using namespace helper;
+    template class SOFA_RGBDTRACKING_API MeshProcessing<Vec3dTypes>;
 
 }
 

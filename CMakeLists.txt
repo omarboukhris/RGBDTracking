@@ -5,7 +5,6 @@ set(RGBDTRACKING_MAJOR_VERSION 0)
 set(RGBDTRACKING_MINOR_VERSION 1)
 set(RGBDTRACKING_VERSION ${RGBDTRACKING_MAJOR_VERSION}.${RGBDTRACKING_MINOR_VERSION})
 
-find_package(OpenCV)
 option(WITH_CUDA FALSE)
 set(HAVECUDA FALSE)
 IF(WITH_CUDA)
@@ -20,7 +19,10 @@ ELSE(WITH_CUDA)
 MESSAGE(STATUS "Without CUDA") 
 ENDIF(WITH_CUDA)
 
-find_package(image QUIET)
+find_package(realsense2 REQUIRED)
+find_package(CImgPlugin QUIET)
+#find_package(OpenCVPlugin REQUIRED)
+#find_package(image QUIET)
 
 FIND_PACKAGE(VISP REQUIRED)
 IF(VISP_FOUND)
@@ -35,118 +37,147 @@ link_directories(${PCL_LIBRARY_DIRS})
 include_directories(BEFORE ${PCL_INCLUDE_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-find_package(Boost COMPONENTS system filesystem REQUIRED)
+find_package(Boost 1.58 COMPONENTS system filesystem REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(OpenCVPlugin REQUIRED)
 
 set(ALL_LIBRARIES ${OpenCV_LIBS} freeimage ${FREEGLUT_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${VISP_LIBRARIES})
 
 set(HEADER_FILES
-	RGBDDataProcessing.h
-	RGBDDataProcessing.inl
-	DataIO.h
-	DataIO.inl
-	MeshProcessing.h
-	MeshProcessing.inl
-	ClosestPoint.h
-	ClosestPoint.inl
-	ClosestPointForceField.h
-#        FeatureMatchingForceField.h
-	RenderTextureAR.h
-	RenderTextureAR.inl
-	RegistrationRigid.h
-	ImageConverter.h
-	ImageConverter.inl
-	#DataGeneration.h
-   	segmentation.h
-#	KalmanFilter.h
-#	ccd.h
-#	p_helper.h
-        RenderingManager.h
-#	ShapeSpringsForceField.h
-	VirtualCamera.h
-	VirtualCamera.inl
-#        DataSource.hpp
-#        serialization.h
-#        ZMQCommunication.h
+#	RGBDDataProcessing.h
+#	RGBDDataProcessing.inl
+#	DataIO.h
+#	DataIO.inl
+#	MeshProcessing.h
+#	MeshProcessing.inl
+#	ClosestPoint.h
+#	ClosestPoint.inl
+#	ClosestPointForceField.h
+#	RenderTextureAR.h
+#	RenderTextureAR.inl
+#	RegistrationRigid.h
+#	ImageConverter.h
+#	ImageConverter.inl
+#	segmentation.h
+#	RenderingManager.h
+#	VirtualCamera.h
+#	VirtualCamera.inl
+
+	src/image/RealSenseCam.h
+	src/image/FakeCam.h
+	src/image/FakeCam.inl
+
+	src/RenderingManager.h
+	src/MeshProcessing.h
+	src/MeshProcessing.inl
+	src/RegistrationRigid.h
+	src/ClosestPoint.h
+	src/ClosestPoint.inl
+	src/ClosestPointForceField.h
+	src/VirtualCamera.h
+	src/VirtualCamera.inl
+
+#	src/RGBDDataProcessing.h
+#	src/RGBDDataProcessing.inl
+	src/ImageConverter.h
+	src/ImageConverter.inl
+#	src/DataIO.h
+#	src/DataIO.inl
+	src/RenderTextureAR.h
+	src/RenderTextureAR.inl
+	src/PointCloudExtractor.h
+	src/PointCloudExtractor.inl
 )
 
 set(SOURCE_FILES
-	initRGBDTracking.cpp
-	RegistrationRigid.cpp
-	ImageConverter.cpp
-	#DataGeneration.cpp
-    	segmentation.cpp
-#	KalmanFilter.cpp
-#	ccd.cpp
-	RGBDDataProcessing.cpp
-	DataIO.cpp
-	MeshProcessing.cpp
-	RenderTextureAR.cpp
-	ClosestPoint.cpp
-	ClosestPointForceField.cpp
-#        FeatureMatchingForceField.cpp
-	RenderingManager.cpp
-#	ShapeSpringsForceField.cpp
-	VirtualCamera.cpp
-#        ZMQCommunication.cpp
+#	initRGBDTracking.cpp
+#	RegistrationRigid.cpp
+#	ImageConverter.cpp
+#	segmentation.cpp
+#	RGBDDataProcessing.cpp
+#	DataIO.cpp
+#	MeshProcessing.cpp
+#	RenderTextureAR.cpp
+#	ClosestPoint.cpp
+#	ClosestPointForceField.cpp
+#	RenderingManager.cpp
+#	VirtualCamera.cpp
+
+	src/image/RealSenseCam.cpp
+	src/image/FakeCam.cpp
+
+	src/RenderingManager.cpp
+	src/MeshProcessing.cpp
+	src/RegistrationRigid.cpp
+	src/ClosestPoint.cpp
+	src/ClosestPointForceField.cpp
+	src/VirtualCamera.cpp
+
+#	src/RGBDDataProcessing.cpp
+	src/ImageConverter.cpp
+#	src/DataIO.cpp
+	src/RenderTextureAR.cpp
+	src/PointCloudExtractor.cpp
 )
 
 set(README_FILES rgbdtracking.txt)
 
 if (HAVECUDA)
 
-list(APPEND HEADER_FILES cudaSegmentation.h)
-list(APPEND SOURCE_FILES cudaSegmentation.cpp)
+	list(APPEND HEADER_FILES cudaSegmentation.h)
+	list(APPEND SOURCE_FILES cudaSegmentation.cpp)
 
-set(CUDA_SOURCES
-GrabcutGMM.cu 
-GrabcutHistogram.cu 
-GrabcutUtil.cu
-#emicp.cu
-)
+	set(CUDA_SOURCES
+		GrabcutGMM.cu
+		GrabcutHistogram.cu
+		GrabcutUtil.cu
+		#emicp.cu
+	)
 
-set(${PROJECT_NAME}_INCLUDE_EXPORTS
-  ${OpenCV_INCLUDE_DIRS}
-  ${VISP_INCLUDE_DIR}
-${VISP_INCLUDE_DIRS}
-/usr/local/cuda-7.0/include/
-/usr/local/cuda-7.0/samples/common/
-/usr/local/cuda-7.0/samples/common/inc/
-/usr/local/cuda-7.0/samples/7_CUDALibraries/common/UtilNPP/
-)
+	set(
+		${PROJECT_NAME}_INCLUDE_EXPORTS
+		${OpenCV_INCLUDE_DIRS}
+		${VISP_INCLUDE_DIR}
+		${VISP_INCLUDE_DIRS}
+		/usr/local/cuda-7.0/include/
+		/usr/local/cuda-7.0/samples/common/
+		/usr/local/cuda-7.0/samples/common/inc/
+		/usr/local/cuda-7.0/samples/7_CUDALibraries/common/UtilNPP/
+	)
 
-# build options
-set(GENCODE -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_35,code=compute_35)
-set(GENCODE ${GENCODE} -gencode=arch=compute_20,code=sm_20)
-set(GENCODE ${GENCODE} -gencode=arch=compute_11,code=sm_11)
+	# build options
+	set(GENCODE -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_35,code=compute_35)
+	set(GENCODE ${GENCODE} -gencode=arch=compute_20,code=sm_20)
+	set(GENCODE ${GENCODE} -gencode=arch=compute_11,code=sm_11)
 
-# debug options
-set(CUDA_NVCC_FLAGS_DEBUG "-G;-g")
-set(CUDA_NVCC_FLAGS_RELEASE "-O2")
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} \"-D_FORCE_INLINES\" ")
+	# debug options
+	set(CUDA_NVCC_FLAGS_DEBUG "-G;-g")
+	set(CUDA_NVCC_FLAGS_RELEASE "-O2")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} \"-D_FORCE_INLINES\" ")
 
-#Give current directory to nvcc compiler
-cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-cuda_include_directories(${SOFA_FRAMEWORK_DIR})
-cuda_include_directories(${SOFA_EXTLIBS_DIR})
-cuda_include_directories(${SOFA_INC_DIR})
+	#Give current directory to nvcc compiler
+	cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	cuda_include_directories(${SOFA_FRAMEWORK_DIR})
+	cuda_include_directories(${SOFA_EXTLIBS_DIR})
+	cuda_include_directories(${SOFA_INC_DIR})
 else(HAVECUDA)
-set(${PROJECT_NAME}_INCLUDE_EXPORTS
-  ${OpenCV_INCLUDE_DIRS}
-  ${VISP_INCLUDE_DIR}
-${VISP_INCLUDE_DIRS}
-)
-#Give current directory to nvcc compiler
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${SOFA_FRAMEWORK_DIR})
-include_directories(${SOFA_EXTLIBS_DIR})
-include_directories(${SOFA_INC_DIR})
+	set(
+		${PROJECT_NAME}_INCLUDE_EXPORTS
+		${OpenCV_INCLUDE_DIRS}
+		${VISP_INCLUDE_DIR}
+		${VISP_INCLUDE_DIRS}
+	)
+	#Give current directory to nvcc compiler
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	include_directories(${SOFA_FRAMEWORK_DIR})
+	include_directories(${SOFA_EXTLIBS_DIR})
+	include_directories(${SOFA_INC_DIR})
 endif(HAVECUDA)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
-
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -178,7 +209,25 @@ if(SOFA-CUDA_CUBLAS)
     target_link_libraries(${PROJECT_NAME} ${CUDA_SPARSE_LIBRARY} ${GENCODE})
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${ALL_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} image SofaGuiQt SofaMeshCollision SofaMiscCollision SofaBaseCollision SofaGuiCommon SofaBaseVisual SofaExporter SofaLoader SofaMiscForceField SofaGeneralEngine)
+target_link_libraries(
+	${PROJECT_NAME}
+	${ALL_LIBRARIES}
+	${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY}
+	realsense2::realsense2
+	CImgPlugin
+	OpenCVPlugin
+	SofaGuiQt
+	SofaMeshCollision
+	SofaMiscCollision
+	SofaBaseCollision
+	SofaGuiCommon
+	SofaBaseVisual
+	SofaExporter
+	SofaLoader
+	SofaMiscForceField
+	SofaGeneralEngine
+)
+#target_link_libraries(${PROJECT_NAME} ${ALL_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} image SofaGuiQt SofaMeshCollision SofaMiscCollision SofaBaseCollision SofaGuiCommon SofaBaseVisual SofaExporter SofaLoader SofaMiscForceField SofaGeneralEngine)
 
 if (HAVECUDA)
 target_link_libraries(${PROJECT_NAME} ${GENCODE} ${CUDA_LIBRARIES} ${CUDA_nppi_LIBRARY})

@@ -81,7 +81,6 @@ class MeshProcessing : public sofa::core::objectmodel::BaseObject
 public:
     SOFA_CLASS(SOFA_TEMPLATE(MeshProcessing,DataTypes),sofa::core::objectmodel::BaseObject);
 	
-	int npoints;
     typedef sofa::core::objectmodel::BaseObject Inherit;
 
     typedef typename DataTypes::Real Real;
@@ -94,10 +93,6 @@ public:
     typedef sofa::defaulttype::Vector4 Vector4;
     typedef sofa::defaulttype::Vector2 Vec2;
 	
-    enum { N=Vec3dTypes::spatial_dimensions };
-    typedef defaulttype::Mat<N,N,Real> Mat;
-    typedef helper::fixed_array <unsigned int,3> tri;
-	
     typename core::behavior::MechanicalState<DataTypes> *mstate;
 
     core::objectmodel::SingleLink<
@@ -105,80 +100,76 @@ public:
         RenderingManager,
         BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_renderingmanager ;
 
+    Eigen::Matrix3f rgbIntrinsicMatrix;
+    cv::Mat depthrend, color, depthMap;
     cv::Rect rectRtt;
-    Data<Vector4> BBox;
-    Real min,max;
     int hght;
     int wdth;
 
-    int ind;
-    //SoftKinetic softk;
-    cv::Mat depth,depth_1, depthrend;
-    cv::Mat color, ir, ig, ib, gray;
-    //cv::Mat color_1,color_2, color_3, color_4, color_5, color_init;
-    cv::Mat depthMap;
-
-    // Number of iterations
-    Data<int> niterations;
-    Data<int> nimages;
-    Data<Real> sigmaWeight;
-    int npasses;
-	
-    int iter_im;
-	
     // source mesh data
-		
-    Data<bool> useContour;
-    Data<bool> useVisible;
-    Data<bool> useRealData;
     Data<Vector4> cameraIntrinsicParameters;
-    Eigen::Matrix3f rgbIntrinsicMatrix;
-    Data<Real> visibilityThreshold;
-    Data< helper::vector<int> > indicesVisible;
 
-    Data< VecCoord > sourcePositions;
-    Data< helper::vector< tri > > sourceTriangles;
-    Data< VecCoord > sourceNormals;
-    Data< VecCoord > sourceSurfacePositions;
-    Data< VecCoord > sourceSurfaceNormals;
-    Data< VecCoord > sourceSurfaceNormalsM;
+//    Data< VecCoord > sourceSurfacePositions;
+//    Data< VecCoord > sourcePositions;
+    //output
+    Data< VecCoord > sourceVisiblePositions;
+    Data<helper::vector< bool > > sourceVisible;  // flag ignored vertices
+    Data< helper::vector< bool > > sourceBorder;
+
+
+    Data< helper::vector<int> > indicesVisible;
     Data< VecCoord > sourceContourPositions;
+    Data< helper::vector< Vec2 > > sourceContourNormals;
     Data< helper::vector< double > > sourceWeights;
 
-    Data< helper::vector< Vec2 > > sourceContourNormals;
-    Data< VecCoord > sourceVisiblePositions;
+    Data<Real> sigmaWeight;
+    Data<bool> useContour;
+    Data<bool> useVisible;
+    Data<Real> visibilityThreshold;
+    Data<int> niterations;
+
     Data<int> borderThdSource;
-
-    Data< helper::vector< bool > > sourceBorder;
-    vector< bool > sourceIgnored;  // flag ignored vertices
-    Data<helper::vector< bool > > sourceVisible;  // flag ignored vertices
-    vector< bool > sourceSurface;
+    Data<Vector4> BBox;
     Data<bool> drawVisibleMesh;
-
     Data<bool> useSIFT3D;
 
-    double timeMeshProcessing;
+    // unused
+//    Data< helper::vector< tri > > sourceTriangles;
+//    Data< VecCoord > sourceNormals;
+//    Data< VecCoord > sourceSurfaceNormals;
+//    Data< VecCoord > sourceSurfaceNormalsM;
+//    vector< bool > sourceIgnored;  // flag ignored vertices
+//    vector< bool > sourceSurface;
 
     MeshProcessing();
     virtual ~MeshProcessing();
 
     void init();
     void handleEvent(sofa::core::objectmodel::Event *event);
+    void draw(const core::visual::VisualParams* vparams);
 
-    VecCoord getSourcePositions(){return sourcePositions.getValue();}
-    VecCoord getSourceVisiblePositions(){return sourceVisiblePositions.getValue();}
-    VecCoord getSourceContourPositions(){return sourceContourPositions.getValue();}
-    void setViewPoint();
+//    VecCoord getSourcePositions(){return sourcePositions.getValue();}
+//    VecCoord getSourceVisiblePositions(){return sourceVisiblePositions.getValue();}
+//    VecCoord getSourceContourPositions(){return sourceContourPositions.getValue();}
 
-    void updateSourceSurface(); // built k-d tree and identify border vertices
-	
+private :
+    // step 1 : case 1
     void extractSourceContour();
+
+    // step 1 : case 2 #1
+    void getSourceVisible(double znear, double zfar);
+    // step 1 : case 2 #2
     void extractSourceVisibleContour();
     void extractSourceSIFT3D();
-    void getSourceVisible(double znear, double zfar);
-    void updateSourceVisible();
+
+    //step 2 : case 1
     void updateSourceVisibleContour();
-    void draw(const core::visual::VisualParams* vparams);
+    // step 2 : case 2
+    void updateSourceVisible();
+    // /!\ unused
+    void updateSourceSurface(); // built k-d tree and identify border vertices
+
+
 };
 
 

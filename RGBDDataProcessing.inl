@@ -51,6 +51,8 @@
 #include <pcl/features/shot_omp.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
+#include <opencv2/highgui.hpp>
+
 #include "ImageConverter.h"
 #ifdef Success
   #undef Success
@@ -142,11 +144,10 @@ void RGBDDataProcessing<DataTypes>::init()
         glDepthMask(GL_TRUE);
         seg.init(segNghb.getValue(), segImpl.getValue(), segMsk.getValue());
 
-    if(displayImages.getValue())
-    {
-    cv::namedWindow("image_sensor");
-        cv::namedWindow("depth_sensor");
-    }
+        if(displayImages.getValue()) {
+            cv::namedWindow("image_sensor");
+            cv::namedWindow("depth_sensor");
+        }
         cv::namedWindow("image_segmented");
 
         Vector4 camParam = cameraIntrinsicParameters.getValue();
@@ -183,7 +184,7 @@ void my_mouse_callback( int event, int x, int y, int flags, void* param )
 
   switch( event )
   {
-      case CV_EVENT_MOUSEMOVE:
+      case cv::EVENT_MOUSEMOVE:
       {
           if( drawing_box )
           {
@@ -193,14 +194,14 @@ void my_mouse_callback( int event, int x, int y, int flags, void* param )
       }
       break;
 
-      case CV_EVENT_LBUTTONDOWN:
+  case cv::EVENT_LBUTTONDOWN:
       {
           drawing_box = true;
           box = cvRect( x, y, 0, 0 );
       }
       break;
 
-      case CV_EVENT_LBUTTONUP:
+  case cv::EVENT_LBUTTONUP:
       {
           drawing_box = false;
           if( box.width < 0 )
@@ -219,7 +220,7 @@ void my_mouse_callback( int event, int x, int y, int flags, void* param )
       }
       break;
 
-      case CV_EVENT_RBUTTONUP:
+  case cv::EVENT_RBUTTONUP:
       {
           destroy=true;
       }
@@ -415,7 +416,6 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
     outputPointcloud->points.clear();
 
     int sample;
-
     // d2gommer sensortype dans tout les components
     // use samplePCD instead
     switch (sensorType.getValue()) {
@@ -457,10 +457,17 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr RGBDDataProcessing<DataTypes>::PCDFromRGB
     std::cout << "out of loop" << std::endl ;
 
 /*
+<<<<<<< Updated upstream
     if (useGroundTruth.getValue())
     {
     int sample1 = 2;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr outputPointcloud1(new pcl::PointCloud<pcl::PointXYZRGB>);
+=======
+	if (useGroundTruth.getValue())
+	{
+	int sample1 = 2;
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr outputPointcloud1(new pcl::PointCloud<pcl::PointXYZRGB>);
+>>>>>>> Stashed changes
 
         for (int i=0;i<(int)depthImage.rows/sample1;i++)
     {
@@ -1064,17 +1071,19 @@ for (int i = 0; i < targetborder.size(); i++)
 
 }
 
+struct deleter {
+    void operator () (const void* p) {delete p ;}
+} ;
+
 template <class DataTypes>
 void RGBDDataProcessing<DataTypes>::extractTargetPCD()
 {
+    typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud ;
 
-    int t = (int)this->getContext()->getTime();
-    target.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-//    target.reset () ;
-    std::cout << "in extracttargetpcd" << std::endl ;
-    std::cout << "reset in" << std::endl ;
-    pcl::copyPointCloud (*PCDFromRGBD(depth,foreground), *target) ;
-//    target = PCDFromRGBD(depth,foreground) ;
+//    target.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+    target->clear();
+//    PointCloud::Ptr target (new PointCloud) ;
+    target = PCDFromRGBD(depth,foreground) ;
 
     std::cout << "out of pcdfromrgb" << std::endl ;
     VecCoord targetpos;
@@ -1093,18 +1102,19 @@ void RGBDDataProcessing<DataTypes>::extractTargetPCD()
             //std::cout << " target " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
         }
 
-        const VecCoord&  p = targetpos;
+//        const VecCoord&  p = targetpos;
 
         if (safeModeSeg.getValue()) {
+            int t = (int)this->getContext()->getTime();
             if (t<20*niterations.getValue()) {
-                sizeinit = p.size();
-                targetPositions.setValue(p);
+                sizeinit = targetpos.size();
+                targetPositions.setValue(targetpos);
 
-            } else if (abs((double)p.size() - (double)sizeinit)/(double)sizeinit<segTolerance.getValue()) {
-                targetPositions.setValue(p);
+            } else if (abs((double)targetpos.size() - (double)sizeinit)/(double)sizeinit<segTolerance.getValue()) {
+                targetPositions.setValue(targetpos);
             }
         } else {
-            targetPositions.setValue(p);
+            targetPositions.setValue(targetpos);
         }
 
     }
@@ -1286,7 +1296,7 @@ void RGBDDataProcessing<DataTypes>::handleEvent(sofa::core::objectmodel::Event *
     {
 
     if (useRealData.getValue())	{
-        initSegmentation();
+		initSegmentation();
         extractTargetPCD();
     }
     std::cout << "out of pcd extr" << std::endl ;

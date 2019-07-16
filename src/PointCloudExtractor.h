@@ -23,47 +23,27 @@
 * Contact information: contact@sofa-framework.org                             *
 ******************************************************************************/
 
-#ifndef SOFA_RGBDTRACKING_RENDERTEXTUREAR_H
-#define SOFA_RGBDTRACKING_RENDERTEXTUREAR_H
+#ifndef SOFA_RGBDTRACKING_PointCloudExtractor_H
+#define SOFA_RGBDTRACKING_PointCloudExtractor_H
 
 #include <RGBDTracking/config.h>
-#include <image/ImageTypes.h>
+//#include <boost/thread.hpp>
+
 #include <sofa/core/core.h>
 #include <sofa/core/objectmodel/BaseObject.h>
 #include <sofa/core/objectmodel/Event.h>
-
+#include <sofa/core/objectmodel/Link.h>
 #include <sofa/simulation/AnimateBeginEvent.h>
 #include <sofa/simulation/AnimateEndEvent.h>
 #include <sofa/core/behavior/MechanicalState.h>
 #include <sofa/helper/accessor.h>
 #include <sofa/defaulttype/VecTypes.h>
 #include <sofa/helper/vector.h>
-#include <sofa/helper/OptionsGroup.h>
-#include <sofa/defaulttype/Mat.h>
-#include <sofa/defaulttype/Quat.h>
 #include <sofa/defaulttype/Vec.h>
 #include <SofaBaseTopology/TopologyData.h>
-#include <visp/vpKltOpencv.h>
-
-#include <set>
-#include <algorithm>    // std::max
-
-#ifdef WIN32
-#include <process.h>
-#else
-#include <pthread.h>
-#endif
-
-#include <cstdio>
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-#include <map>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <math.h>
-#include <sys/times.h>
+#include <sofa/gui/BaseGUI.h>
+#include <sofa/gui/BaseViewer.h>
+#include <sofa/gui/GUIManager.h>
 
 #define GL_GLEXT_PROTOTYPES 1
 #define GL4_PROTOTYPES 1
@@ -72,39 +52,50 @@
 //#include <GL/glext.h>
 #include <GL/glu.h>
 
-#include <opencv/cv.h>
-#include <opencv2/core.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-#include <boost/thread.hpp>
+#include <set>
 
+#ifdef WIN32
+#include <process.h>
+#else
+#include <pthread.h>
+#endif
+
+#include <stdlib.h>
+#include <vector>
 #include <iostream>
 #include <string>
-#include <map>
-//#include <XnCppWrapper.h>
-#include "RenderingManager.h"
+
+#include <sys/times.h>
+
+#include <visp/vpIoTools.h>
+#include <visp/vpImageIo.h>
+#include <visp/vpParseArgv.h>
+#include <visp/vpMatrix.h>
+#include <visp/vpKltOpencv.h>
+
+#include <pcl/search/impl/search.hpp>
+
+#include <sofa/opencvplugin/BaseOpenCVComponent.h>
 
 using namespace std;
 using namespace cv;
 
+
 namespace sofa {
 
 namespace rgbdtracking {
-
 
 using helper::vector;
 using namespace sofa::defaulttype;
 using namespace sofa::component::topology;
 
 template<class DataTypes>
-class RenderTextureAR : public core::objectmodel::BaseObject
+class PointCloudExtractor : public opencvplugin::BaseOpenCVComponent
 {
 public:
-    SOFA_CLASS(SOFA_TEMPLATE(RenderTextureAR,DataTypes), sofa::core::objectmodel::BaseObject);
-	
-    typedef sofa::core::objectmodel::BaseObject Inherit;
+    SOFA_CLASS(SOFA_TEMPLATE(PointCloudExtractor,DataTypes),opencvplugin::BaseOpenCVComponent);
 
+    typedef opencvplugin::BaseOpenCVComponent Inherit;
     typedef typename DataTypes::Real Real;
     typedef typename DataTypes::Coord Coord;
     typedef typename DataTypes::Deriv Deriv;
@@ -113,44 +104,96 @@ public:
     typedef Data<typename DataTypes::VecCoord> DataVecCoord;
     typedef Data<typename DataTypes::VecDeriv> DataVecDeriv;
     typedef sofa::defaulttype::Vector4 Vector4;
-	
+    typedef sofa::defaulttype::Vector3 Vec3;
+    typedef helper::fixed_array <unsigned int,3> tri;
+//    typedef defaulttype::ImageF DepthTypes;
 
-//    cv::Rect rectRtt; // deprecated
+    typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud ;
+
+    typedef defaulttype::Mat<
+        Vec3dTypes::spatial_dimensions,
+        Vec3dTypes::spatial_dimensions,
+        Real
+    > Mat;
+
+    Data<opencvplugin::ImageData>
+        d_foreground,
+        d_depth,
+        d_color ;
+    DataCallback c_image ;
+
+    Data<bool> useCurvature;
+    Data<bool> useContour;
+
     Data<int> niterations;
+    Data<int> samplePCD;
+    Data<int> borderThdPCD;
+    Data<Real> sigmaWeight;
 
-    core::objectmodel::SingleLink<
-        RenderTextureAR<DataTypes>,
-        RenderingManager,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_renderingmanager ;
 
-//    core::objectmodel::SingleLink<
-//        RenderTextureAR<DataTypes>,
-//        DataIO<DataTypes>,
-//        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_dataio ;
+    //display param
+    Data<bool> drawPointCloud;
+    Data<bool> displayBackgroundImage;
 
-    RenderTextureAR();
-    virtual ~RenderTextureAR();
+    //outputs
+    Data< VecCoord > targetPositions;
+    Data< VecCoord > targetNormals;
+    Data< VecCoord > targetContourPositions;
+    Data< VecCoord > targetGtPositions;
+    Data< helper::vector< bool > > targetBorder;
+    Data< helper::vector< double > > targetWeights;
+    Data< helper::vector< double > > curvatures;
+
+    Data<Vector4> cameraIntrinsicParameters;
+    Data<Vec3> cameraPosition;
+    Data<Quat> cameraOrientation;
+    Data<bool> cameraChanged;
+
+    Data<bool> safeModeSeg;
+    Data<double> segTolerance;
+
+    Eigen::Matrix3f rgbIntrinsicMatrix;
+
+    int ntargetcontours;
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr target ;
+
+
+    PointCloudExtractor();
+    virtual ~PointCloudExtractor();
 
     void init();
     void handleEvent(sofa::core::objectmodel::Event *event);
-    void renderToTexture(cv::Mat &_rtt);
-    void renderToTextureD(cv::Mat &_rtt,cv::Mat &color_1);
-    void renderToTextureDepth(cv::Mat &_rtt, cv::Mat &_rttdepth);
 
+    void extractTargetPCD();
+    void extractTargetPCDContour();
+    void setCameraPose();
+
+    void draw(const core::visual::VisualParams* vparams) ;
+private :
+    cv::Mat foreground;
+    cv::Mat depth, color ;
+    cv::Mat distimage, dotimage;
+
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCDFromRGBD(cv::Mat& depthImage, cv::Mat& rgbImage);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCDContourFromRGBD(cv::Mat& depthImage, cv::Mat& rgbImage, cv::Mat& distImage, cv::Mat& dotImage);
+
+    void setDataInput () ;
 };
 
 
-#if defined(SOFA_EXTERN_TEMPLATE) && !defined(RenderTextureAR_CPP)
-    #ifndef SOFA_FLOAT
-        extern template class SOFA_RGBDTRACKING_API RenderTextureAR<defaulttype::Vec3dTypes>;
-    #endif
-    #ifndef SOFA_DOUBLE
-        extern template class SOFA_RGBDTRACKING_API RenderTextureAR<defaulttype::Vec3fTypes>;
-    #endif
+#if defined(SOFA_EXTERN_TEMPLATE) && !defined(PointCloudExtractor_CPP)
+#ifndef SOFA_FLOAT
+    extern template class SOFA_RGBDTRACKING_API PointCloudExtractor<defaulttype::Vec3dTypes>;
+#endif
+#ifndef SOFA_DOUBLE
+    extern template class SOFA_RGBDTRACKING_API PointCloudExtractor<defaulttype::Vec3fTypes>;
+#endif
 #endif
 
 
-} //
+} // rgbdtracking
 
 } // namespace sofa
 
