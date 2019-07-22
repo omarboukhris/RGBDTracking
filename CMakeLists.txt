@@ -64,6 +64,7 @@ set(HEADER_FILES
 #	VirtualCamera.inl
 
 	src/image/RealSenseCam.h
+	src/image/RealSense.h
 	src/image/FakeCam.h
 	src/image/FakeCam.inl
 
@@ -104,6 +105,7 @@ set(SOURCE_FILES
 #	VirtualCamera.cpp
 
 	src/image/RealSenseCam.cpp
+	src/image/RealSense.cpp
 	src/image/FakeCam.cpp
 
 	src/RenderingManager.cpp

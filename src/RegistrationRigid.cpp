@@ -129,7 +129,6 @@ void RegistrationRigid<DataTypes>::init()
 
     rigidForces.setValue(x);
 }
-
 template <class DataTypes>
 void RegistrationRigid<DataTypes>::determineRigidTransformation ()
 {
@@ -330,9 +329,9 @@ void RegistrationRigid<DataTypes>::determineRigidTransformationVisible () {
         //registration->setInputCloud(source_segmented_);
         registration.setInputTarget (target);
     }
-    registration.setMaxCorrespondenceDistance(0.35);
+    registration.setMaxCorrespondenceDistance(0.05);
     //registration.setMaxCorrespondenceDistance(0.04);
-    registration.setTransformationEpsilon (0.00001);
+    registration.setTransformationEpsilon (0.000001);
     registration.setMaximumIterations (100);
 
     // Register

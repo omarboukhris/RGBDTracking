@@ -53,6 +53,7 @@
 #include <pcl/features/3dsc.h>
 #include <pcl/features/shot_omp.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/io/pcd_io.h>
 
 #include <algorithm>
 
@@ -240,6 +241,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
 
         curvatures.setValue(curvs);
     }
+    pcl::io::savePCDFile( "cloud.pcd", *outputPointcloud, true );
     return outputPointcloud;
 }
 
@@ -423,7 +425,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDContou
         curvatures.setValue(curvs);
         //std::cout << " curvature " << descriptor << std::endl;
     }
-
+    //pcl::io::savePCDFile( "cloud.pcd", *outputPointcloud, true ) ;
     return outputPointcloud;
 }
 
