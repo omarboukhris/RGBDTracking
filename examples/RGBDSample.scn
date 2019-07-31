@@ -52,17 +52,20 @@
 			depth="@fakecam.depth"
 			color="@fakecam.image"
 			sigmaWeight = "4"
-			cameraIntrinsicParameters="750 750 640 480"
+			samplePCD = "4"
+			borderThdPCD = "4"
+			drawPointCloud="1"
+			cameraIntrinsicParameters="275.0 275.0 160.0 120.0"
 		/>
 		
 		<VirtualCamera 
 			name="vcam"
-			cameraIntrinsicParameters="@pclextract.cameraIntrinsicParameters"
+			cameraIntrinsicParameters="550 550 320 240"
 			viewportWidth="640"
 			viewportHeight="480"
 			cameraPosition="@pclextract.cameraPosition"
 			cameraOrientation="@pclextract.cameraOrientation"
-			cameraChanged="@pclextract.cameraChanged"
+			cameraChanged="1"
 		/>
 		
 		<MeshProcessing
@@ -87,8 +90,8 @@
 			name="registrationrigid"
 			sourceVisiblePositions="@mp1.sourceVisiblePositions"
 			targetPositions="@pclextract.targetPositions"
-			useVisible = "1"
-			niterations = "2"
+			useVisible = "@mp1.useVisible"
+			niterations = "1"
 			forceRegistration="0"
 		/>
 		
@@ -114,9 +117,9 @@
 			outlierThreshold = "30"
 			rejectBorders ="0"
 			useContour = "0"
-			useVisible = "1"
+			useVisible = "@mp1.useVisible"
 			useDistContourNormal = "0"
-			niterations = "2"
+			niterations = "1"
 		/>
 		
 		<Node name="sourceSurface">
@@ -134,17 +137,20 @@
 			<VisualModel name="Visual" color="blue" />
 			<BarycentricMapping input="@../dofs1" output="@Visual" />
 		</Node>
+
 	</Node>
 	
 	<RenderingManager 
 		name="renderingmanager" 
+		useBBox="0"
 	/>
 
+
 <!-- 	320/240 -->
-<!--
+
 	<OpenCVViewer 
 		name="viewer" 
 		image="@rgbd_pipeline/grabcut.out" 
 	/>
--->
+
 </Node>

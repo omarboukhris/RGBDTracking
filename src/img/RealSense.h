@@ -49,6 +49,7 @@
 #include <map>
 
 #include <sofa/opencvplugin/OpenCVWidget.h>
+#include <sofa/opencvplugin/utils/OpenCVMouseEvents.h>
 
 namespace sofa
 {
@@ -108,6 +109,13 @@ public:
 
 	virtual void init() {
         initAlign();
+//        cv::namedWindow("title") ;
+//        std::vector<cv::Point> pts = opencvplugin::utils::mouseevents::pointsDrawer("title", d_depth.getValue().getImage()) ;
+//        for (cv::Point pt : pts) {
+//            std::cout << pt.x << " " << pt.y << std::endl ;
+//        }
+//        std::cout << pts.size() << std::endl ;
+//        cv::Rect r = opencvplugin::utils::mouseevents::rectangleDrawer("title", d_depth.getValue().getImage()) ;
     }
 
     void draw(const core::visual::VisualParams*){
@@ -200,7 +208,6 @@ protected:
             depth16 = depth160.clone(),
             & depth8 = *d_depth.beginEdit() ;
         depth16.convertTo(depth8, CV_8U, 1.f/64*depthScale.getValue()); //depth32 is output
-        cv::imwrite("log.jpg", depth8) ;
         d_depth.endEdit();
 
     }

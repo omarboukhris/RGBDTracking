@@ -156,131 +156,119 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 {
 
     int t = (int)this->getContext()->getTime();
-    {
-        cv::Mat _rtd0, depthr, depthu;
-        renderingmanager->getDepths(depthr);
-        depthrend = depthr.clone();
 
-        wdth = depthr.cols;
-        hght = depthr.rows;
+    cv::Mat _rtd0, depthr ;
+    l_renderingmanager->getDepths(depthr);
+    depthrend = depthr.clone();
 
-        _rtd0.create(hght,wdth, CV_8UC1);
-        double depthsN[hght * wdth ];
+    wdth = depthr.cols;
+    hght = depthr.rows;
 
-        std::vector<cv::Point> ptfgd;
-        ptfgd.resize(0);
-        cv::Point pt;
-        double clip_z;
-        //double timef0 = (double)getTickCount();
+    _rtd0.create(hght,wdth, CV_8UC1);
+    double depthsN[hght * wdth ];
 
-        for (int j = 0; j < wdth; j++)
-            for (int i = 0; i< hght; i++)
-            {
-                if ((double)depthr.at<float>(hght-i-1,j) < 1  && (double)depthr.at<float>(hght-i-1,j)	> 0.001)
-                {
-                    //if (j >= rectRtt.x && j < rectRtt.x + rectRtt.width && i >= rectRtt.y && i < rectRtt.y + rectRtt.height) {
-                    //if ((double)(float)depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)]	< 1){
+    std::vector<cv::Point> ptfgd;
+    ptfgd.resize(0);
+    double clip_z;
 
-                    clip_z = (depthr.at<float>(hght-i-1,j) - 0.5) * 2.0;
-                    //double clip_z = (depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)] - 0.5) * 2.0;
-                    depthsN[j+i*wdth] = 2*znear*zfar/(clip_z*(zfar-znear)-(zfar+znear));
+    for (int j = 0; j < wdth; j++) {
+        for (int i = 0; i< hght; i++) {
+            if ((double)depthr.at<float>(hght-i-1,j) < 1  &&
+                (double)depthr.at<float>(hght-i-1,j)	> 0.001) {
+                //if (j >= rectRtt.x && j < rectRtt.x + rectRtt.width && i >= rectRtt.y && i < rectRtt.y + rectRtt.height) {
+                //if ((double)(float)depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)]	< 1){
 
-                    //std::cout << " dpethsN " <<  depthsN[j+i*wdth] << std::endl;
-                    if ( depthsN[j+i*wdth] > -10 && depthsN[j+i*wdth] < -0.05)
-                    {
-                    pt.x = j;
-                    pt.y = i;
+                clip_z = (depthr.at<float>(hght-i-1,j) - 0.5) * 2.0;
+                //double clip_z = (depths1[j-rectRtt.x+(i-rectRtt.y)*(rectRtt.width)] - 0.5) * 2.0;
+                depthsN[j+i*wdth] = 2*znear*zfar/(clip_z*(zfar-znear)-(zfar+znear));
+
+                //std::cout << " dpethsN " <<  depthsN[j+i*wdth] << std::endl;
+                if ( depthsN[j+i*wdth] > -10 && depthsN[j+i*wdth] < -0.05) {
+                    cv::Point pt = cv::Point (i, j);
                     ptfgd.push_back(pt);
                     _rtd0.at<uchar>(hght-i-1,j) = 255;
-
-                    }
-                    else _rtd0.at<uchar>(hght-i-1,j) = 0;
-
-                }
-                else
-                {
+                } else {
                     _rtd0.at<uchar>(hght-i-1,j) = 0;
-                    depthsN[j+i*wdth] = 0;
                 }
-
+            } else {
+                _rtd0.at<uchar>(hght-i-1,j) = 0;
+                depthsN[j+i*wdth] = 0;
             }
+        }
+    }
 
-        {
-            cv::Rect rectrtt = cv::boundingRect(ptfgd);
+    cv::Rect rectrtt = cv::boundingRect(ptfgd);
 
-            if (ptfgd.size()==0)
-            {
-                rectRtt.x = 0;
-                rectRtt.y = 0;
-                rectRtt.height = hght;
-                rectRtt.width = wdth;
-            }
-            else //if ((double)rectrtt.height/rectRtt.height - 1 < 0.2 && (double)rectrtt.width/rectRtt.width - 1 < 0.2)
-            {
-                rectRtt = rectrtt;
+    if (ptfgd.size()==0) {
+        rectRtt.x = 0;
+        rectRtt.y = 0;
+        rectRtt.height = hght;
+        rectRtt.width = wdth;
+    } else  {
+    //if ((double)rectrtt.height/rectRtt.height - 1 < 0.2 && (double)rectrtt.width/rectRtt.width - 1 < 0.2)
+        rectRtt = rectrtt;
 
-            if (rectRtt.x >=10)
+        if (rectRtt.x >=10) {
             rectRtt.x -= 10;
-            if (rectRtt.y >=10)
+        } if (rectRtt.y >=10) {
             rectRtt.y -= 10;
-            if (rectRtt.y + rectRtt.height < hght - 20)
+        } if (rectRtt.y + rectRtt.height < hght - 20) {
             rectRtt.height += 20;
-            if (rectRtt.x + rectRtt.width < wdth - 20)
+        } if (rectRtt.x + rectRtt.width < wdth - 20) {
             rectRtt.width += 20;
-                        }
-
-        depthMap = _rtd0.clone();
-        /*depthr.convertTo(depthu, CV_8UC1, 10);
-        cv::namedWindow("depth_map");
-        cv::imshow("depth_map",depthMap);
-        cv::waitKey(1);
-        cv::imwrite("depth000.png",depthMap);
-        //cv::imwrite("depth01.png", depthMap);*/
-
-            Vector4 bbox;
-            bbox[0] = rectRtt.x;
-            bbox[1] = rectRtt.y;
-            bbox[2] = rectRtt.width;
-            bbox[3] = rectRtt.height;
-            BBox.setValue(bbox);
         }
-        const VecCoord& x = mstate->read(core::ConstVecCoordId::position())->getValue();
+    }
 
-        helper::vector<bool> sourcevisible;
-        sourcevisible.resize(x.size());
-        VecCoord sourceVis;
-        Vector3 pos;
+    depthMap = _rtd0.clone();
+    /*depthr.convertTo(depthu, CV_8UC1, 10);
+    cv::namedWindow("depth_map");
+    cv::imshow("depth_map",depthMap);
+    cv::waitKey(1);
+    cv::imwrite("depth000.png",depthMap);
+    //cv::imwrite("depth01.png", depthMap);*/
 
-        helper::vector< int > indicesvisible;
-        indicesvisible.resize(0);
+    Vector4 bbox;
+    bbox[0] = rectRtt.x;
+    bbox[1] = rectRtt.y;
+    bbox[2] = rectRtt.width;
+    bbox[3] = rectRtt.height;
+    BBox.setValue(bbox);
 
-        for (unsigned int k = 0; k < x.size(); k++)
-        {
-            int x_u = (int)(x[k][0]*rgbIntrinsicMatrix(0,0)/x[k][2] + rgbIntrinsicMatrix(0,2));
-            int x_v = (int)(x[k][1]*rgbIntrinsicMatrix(1,1)/x[k][2] + rgbIntrinsicMatrix(1,2));
+    const VecCoord& x = mstate->read(core::ConstVecCoordId::position())->getValue();
 
-            if (x_u>=0 && x_u<wdth && x_v<hght && x_v >= 0){
-                if((float)abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() || (float)depthsN[x_u+(hght-x_v-1)*wdth] == 0)
-                {
-                    sourcevisible[k] = true;
-                    pos = x[k];
-                    sourceVis.push_back(pos);
-                    indicesvisible.push_back(k);
-                }
-                else
-                {
-                    sourcevisible[k] = false;
-                }
+    helper::vector<bool> sourcevisible;
+    sourcevisible.resize(x.size());
+    VecCoord sourceVis;
+    Vector3 pos;
+
+    helper::vector< int > indicesvisible;
+    indicesvisible.resize(0);
+
+    for (unsigned int k = 0; k < x.size(); k++) {
+        int x_u = (int)(x[k][0]*rgbIntrinsicMatrix(0,0)/x[k][2] + rgbIntrinsicMatrix(0,2));
+        int x_v = (int)(x[k][1]*rgbIntrinsicMatrix(1,1)/x[k][2] + rgbIntrinsicMatrix(1,2));
+
+        if (x_u>=0 && x_u<wdth && x_v<hght && x_v >= 0){
+            if((float)abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() || (float)depthsN[x_u+(hght-x_v-1)*wdth] == 0)
+            {
+                sourcevisible[k] = true;
+                pos = x[k];
+                sourceVis.push_back(pos);
+                indicesvisible.push_back(k);
             }
-            else {sourcevisible[k] = false;}
-
+            else
+            {
+                sourcevisible[k] = false;
+            }
         }
-
-        sourceVisiblePositions.setValue(sourceVis);
-        sourceVisible.setValue(sourcevisible);
-        indicesVisible.setValue(indicesvisible);
+        else {sourcevisible[k] = false;}
 
     }
+
+    sourceVisiblePositions.setValue(sourceVis);
+    sourceVisible.setValue(sourcevisible);
+    indicesVisible.setValue(indicesvisible);
+
 }
 
 template<class DataTypes>
@@ -612,46 +600,35 @@ void MeshProcessing<DataTypes>::handleEvent(sofa::core::objectmodel::Event *even
     if (dynamic_cast<simulation::AnimateBeginEvent*>(event))
     {
         int t = (int)this->getContext()->getTime();
-        timeMeshProcessing = (double)getTickCount();
-            if ( t%niterations.getValue() == 0)
-             {
-                if (!useVisible.getValue())
-                {
-                    if(useContour.getValue())
-                    extractSourceContour();
-                }
-                else
-                {
-                    cv::Mat depthr;
-                    renderingmanager->getDepths(depthr);
-                    depthrend = depthr.clone();
-                    double znear = renderingmanager->getZNear();
-                    double zfar = renderingmanager->getZFar();
-                    if (!depthrend.empty())
-                    {
-                        getSourceVisible(znear, zfar);
 
-                    if(useContour.getValue())
+        if ( t%niterations.getValue() == 0) {
+            if (!useVisible.getValue() && useContour.getValue()) {
+                extractSourceContour();
+            } else {
+                cv::Mat depthr;
+                l_renderingmanager->getDepths(depthr);
+                depthrend = depthr.clone();
+                double znear = l_renderingmanager->getZNear();
+                double zfar = l_renderingmanager->getZFar();
+                if (!depthrend.empty()) {
+                    getSourceVisible(znear, zfar);
+                    if(useContour.getValue()) {
                         extractSourceVisibleContour();
-
-                    if (useSIFT3D.getValue())
-                    {
+                    }
+                    if (useSIFT3D.getValue()) {
                         extractSourceSIFT3D();
                     }
-                    }
                 }
             }
+        }
 
-            if (!depthrend.empty() && useVisible.getValue() && t%niterations.getValue()!= 0)
-            {
-                if(useContour.getValue())
-                    updateSourceVisibleContour();
-                else updateSourceVisible();
-
+        if (!depthrend.empty() && useVisible.getValue() && t%niterations.getValue()!= 0) {
+            if(useContour.getValue()) {
+                updateSourceVisibleContour();
+            } else {
+                updateSourceVisible();
             }
-            timeMeshProcessing = ((double)getTickCount() - timeMeshProcessing)/getTickFrequency();
-
-            cout << "TIME MESHPROCESSING " << timeMeshProcessing << endl;
+        }
 
     }
 }

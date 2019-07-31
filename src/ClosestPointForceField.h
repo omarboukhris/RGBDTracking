@@ -27,9 +27,9 @@
 #define SOFA_RGBDTRACKING_CLOSESTPOINTFORCEFIELD_H
 
 #include <RGBDTracking/src/PointCloudExtractor.h>
-#include <RGBDTracking/src/image/FakeCam.h>
+#include <RGBDTracking/src/img/FakeCam.h>
 #include <RGBDTracking/src/ClosestPoint.h>
-#include <RGBDTracking/src/RGBDDataProcessing.h>
+//#include <RGBDTracking/src/RGBDDataProcessing.h>
 #include <RGBDTracking/src/MeshProcessing.h>
 
 #include <opencv/cv.h>

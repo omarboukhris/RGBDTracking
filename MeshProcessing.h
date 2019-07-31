@@ -111,6 +111,10 @@ public:
 	
     typename core::behavior::MechanicalState<DataTypes> *mstate;
     typename sofa::component::visualmodel::RenderingManager::SPtr renderingmanager;
+    core::objectmodel::SingleLink<
+        MeshProcessing<DataTypes>,
+        RenderingManager,
+        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_renderingmanager ;
 
     cv::Rect rectRtt;
     Data<Vector4> BBox;

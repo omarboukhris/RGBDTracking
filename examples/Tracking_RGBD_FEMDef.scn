@@ -23,8 +23,10 @@
 		<MechanicalObject name="dofs1" src="@MeshLoader1" rotation="90 -90 0" translation="0. 0.0 0.70" scale = "1"/>
 		<UniformMass mass="0.2"/>
 
-		<FakeCam 
+		<DataIO 
 			name="fakecam"
+			useSensor = "1"
+			useRealData = "1"
 			inputPath = "/home/omar/projects/RGBDTracking/examples/images/imagesInteraction"
 			outputPath = "out/imagesInteraction00001"
 			nimages = "550"

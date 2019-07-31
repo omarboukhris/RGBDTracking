@@ -68,6 +68,7 @@ FakeCam<DataTypes>::FakeCam()
     std::cout << " init data " << std::endl;
     this->f_listening.setValue(true);
     readImages();
+    npasses = 1;
 }
 
 template <class DataTypes>
@@ -78,20 +79,24 @@ FakeCam<DataTypes>::~FakeCam()
 template<class DataTypes>
 void FakeCam<DataTypes>::readImages()
 {
+    npasses = 1;
     int t = (int)this->getContext()->getTime();
+    std::cout << "0-" << npasses << std::endl ;
     if (t%(npasses) != 0 ) {
+        std::cout <<"00" << std::endl ;
         return ;
     } else if (t % niterations.getValue() != 0) {
+        std::cout <<"000" << std::endl ;
         newImages.setValue(false) ;
     } else {
         newImages.setValue(true);
+        std::cout <<"0" << std::endl ;
         RGBDFileSystemIO mydumper (inputPath.getValue(), iter_im) ;
         iter_im++;
-
         depth = mydumper.read_depths() ;
         color = mydumper.read_image() ;
         color_1 = color.clone();
-
+        std::cout <<"1" << std::endl ;
         d_imageout.setValue(color);
         d_depthout.setValue(depth);
     }
@@ -122,7 +127,6 @@ void FakeCam<DataTypes>::init()
 //   listvisible.resize(0);
    pcl = false;
    disp = false;
-   npasses = 1;
 }
 
 template <class DataTypes>

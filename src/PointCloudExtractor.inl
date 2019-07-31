@@ -531,7 +531,7 @@ template <class DataTypes>
 void PointCloudExtractor<DataTypes>::draw(const core::visual::VisualParams* vparams)
 {
 
-//    helper::ReadAccessor< Data< VecCoord > > xtarget(targetPositions);
+    helper::ReadAccessor< Data< VecCoord > > xtarget(targetPositions);
 //    vparams->drawTool()->saveLastState();
 
 //    if (displayBackgroundImage.getValue()) {
@@ -592,20 +592,20 @@ void PointCloudExtractor<DataTypes>::draw(const core::visual::VisualParams* vpar
 //        vparams->drawTool()->restoreLastState();
 //    }
 
-//    if (drawPointCloud.getValue() && xtarget.size() > 0){
-//        std::vector< sofa::defaulttype::Vector3 > points;
-//        sofa::defaulttype::Vector3 point;
+    if (drawPointCloud.getValue() && xtarget.size() > 0){
+        std::vector< sofa::defaulttype::Vector3 > points;
+        sofa::defaulttype::Vector3 point;
 
-//        for (unsigned int i=0; i< xtarget.size(); i++) {
-//            points.resize(0);
-//            point = DataTypes::getCPos(xtarget[i]);
-//            points.push_back(point);
-//            // std::cout << curvatures.getValue()[i] << std::endl;
-//            //if (targetWeights.getValue().size()>0) vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5*targetWeights.getValue()[i],0,0,1));
-//            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
-//        }
+        for (unsigned int i=0; i< xtarget.size(); i++) {
+            points.resize(0);
+            point = DataTypes::getCPos(xtarget[i]);
+            points.push_back(point);
+            // std::cout << curvatures.getValue()[i] << std::endl;
+            //if (targetWeights.getValue().size()>0) vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5*targetWeights.getValue()[i],0,0,1));
+            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
+        }
 
-//    }
+    }
 
 }
 

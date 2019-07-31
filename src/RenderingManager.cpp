@@ -123,6 +123,7 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
     }
     zNear.setValue(znear);
     zFar.setValue(zfar);
+    std::cout << zNear << " " << zFar << std::endl ;
 
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT,viewport);
@@ -167,6 +168,8 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
         }
 
         depthmat = depthm.clone();
+        cv::imshow("img2", depthm) ;
+//        std::cout << depthm << std::endl ;
 
         if (useRenderAR.getValue()) {
             texturemat.create(hght,wdth, CV_8UC3);

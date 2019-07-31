@@ -59,14 +59,14 @@ set(HEADER_FILES
 #	ImageConverter.h
 #	ImageConverter.inl
 #	segmentation.h
-#	RenderingManager.h
+	RenderingManager.h
 #	VirtualCamera.h
 #	VirtualCamera.inl
 
-	src/image/RealSenseCam.h
-	src/image/RealSense.h
-	src/image/FakeCam.h
-	src/image/FakeCam.inl
+	src/img/RealSenseCam.h
+	src/img/RealSense.h
+	src/img/FakeCam.h
+	src/img/FakeCam.inl
 
 	src/RenderingManager.h
 	src/MeshProcessing.h
@@ -80,8 +80,8 @@ set(HEADER_FILES
 
 #	src/RGBDDataProcessing.h
 #	src/RGBDDataProcessing.inl
-	src/ImageConverter.h
-	src/ImageConverter.inl
+#	src/ImageConverter.h
+#	src/ImageConverter.inl
 #	src/DataIO.h
 #	src/DataIO.inl
 	src/RenderTextureAR.h
@@ -101,12 +101,12 @@ set(SOURCE_FILES
 #	RenderTextureAR.cpp
 #	ClosestPoint.cpp
 #	ClosestPointForceField.cpp
-#	RenderingManager.cpp
+	RenderingManager.cpp
 #	VirtualCamera.cpp
 
-	src/image/RealSenseCam.cpp
-	src/image/RealSense.cpp
-	src/image/FakeCam.cpp
+	src/img/RealSenseCam.cpp
+	src/img/RealSense.cpp
+	src/img/FakeCam.cpp
 
 	src/RenderingManager.cpp
 	src/MeshProcessing.cpp

@@ -278,10 +278,9 @@ void MeshProcessing<DataTypes>::updateSourceVisible()
     const VecCoord&  x = mstate->read(core::ConstVecCoordId::position())->getValue();
     VecCoord sourceVis;
     helper::vector<bool> sourcevisible = sourceVisible.getValue();
-    Vector3 pos;
     for (unsigned int i=0; i< x.size(); i++) {
         if (sourcevisible[i]) {
-            pos = x[i];
+            Vector3 pos = x[i];
             sourceVis.push_back(pos);
         }
     }
@@ -553,7 +552,7 @@ void MeshProcessing<DataTypes>::extractSourceSIFT3D()
     sift.setInputCloud(cloudWithNormals);
     sift.compute(result);
 
-    std::cout << "No of SIFT points in the result are " << result.points.size () << std::endl;
+    std::cout << "Number of SIFT points in the result are " << result.points.size () << std::endl;
 }
 
 template<class DataTypes>
@@ -562,16 +561,14 @@ void MeshProcessing<DataTypes>::updateSourceVisibleContour() {
     const VecCoord&  x = mstate->read(core::ConstVecCoordId::position())->getValue();
     VecCoord sourcecontourpos;
     sourcecontourpos.resize(sourceContourPositions.getValue().size());
-    Vector3 pos;
     int k = 0;
 
     helper::vector< bool > sourceborder = sourceBorder.getValue();
 
     for (unsigned int i=0; i<x.size(); i++) {
         if (sourceborder[i]) {
-            pos = x[i];
-            sourcecontourpos[k]=pos;
-            k++;
+            Vector3 pos = x[i];
+            sourcecontourpos[k++] = pos;
         }
     }
     const VecCoord&  p = sourcecontourpos;
@@ -593,14 +590,14 @@ void MeshProcessing<DataTypes>::handleEvent(sofa::core::objectmodel::Event *even
                 extractSourceContour();
             } else {
                 cv::Mat depthr;
-                l_renderingmanager->getDepths(depthrend);
-                //depthrend = depthr.clone();
+                l_renderingmanager->getDepths(depthr);
+                depthrend = depthr.clone();
                 double znear = l_renderingmanager->getZNear();
                 double zfar = l_renderingmanager->getZFar();
                 if (!depthrend.empty()) {
-                    //(t%(npasses + niterations.getValue() - 1) ==0 )
-                    //std::cout << " znear01 " << znear << " zfar01 " << zfar << std::endl;
                     getSourceVisible(znear, zfar);
+
+//                    cv::imshow("img", depthrend) ; ///////////////////////////
 
                     if(useContour.getValue()) {
                         extractSourceVisibleContour();
@@ -633,12 +630,15 @@ void MeshProcessing<DataTypes>::draw(const core::visual::VisualParams* vparams)
 
     if (drawVisibleMesh.getValue() && xvisible.size() > 0) {
         std::vector< sofa::defaulttype::Vector3 > points;
-        sofa::defaulttype::Vector3 point;
 
         for (unsigned int i=0; i< xvisible.size(); i++) {
-            point = DataTypes::getCPos(xvisible[i]);
+            sofa::defaulttype::Vector3 point = DataTypes::getCPos(xvisible[i]);
             points.push_back(point);
-            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5,0.5,1,1));
+            vparams->drawTool()->drawPoints(
+                points,
+                10,
+                sofa::defaulttype::Vec<4,float>(0.5,0.5,1,1)
+            );
         }
     }
 
