@@ -150,7 +150,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
     if (samplePCD.getValue() > 1) {
         sample = samplePCD.getValue();
     } else {
-        sample = 2;
+        sample = 1;
     }
 
     float rgbFocalInvertedX = 1/rgbIntrinsicMatrix(0,0);	// 1/fx
@@ -160,14 +160,14 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
     for (int i=0;i<(int)depthImage.rows/sample;i++) {
         for (int j=0;j<(int)depthImage.cols/sample;j++) {
 
-            float depthValue = (float)depthImage.at<float>(sample*i,sample*j);//*0.819;
+            float depthValue = (float)depthImage.at<float>(sample*i,sample*j) * 0.819;
             int avalue = (int)rgbImage.at<Vec4b>(sample*i,sample*j)[3];
 
             if (avalue > 0 && depthValue>0) {
                 //std::cout << "IN" << std::endl ;
                 // if depthValue is not NaN
                 // Find 3D position respect to rgb frame:
-                newPoint.z = depthValue;
+                   newPoint.z = depthValue;
                 newPoint.x = (sample*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
                 newPoint.y = (sample*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
                 newPoint.r = rgbImage.at<cv::Vec4b>(sample*i,sample*j)[2];
@@ -191,7 +191,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
             for (int j=0;j<(int)depthImage.cols/sample1;j++) {
                 float depthValue = (float)depthImage.at<float>(sample1*i,sample1*j);//*0.819;
                 int avalue = (int)rgbImage.at<Vec4b>(sample1*i,sample1*j)[3];
-                if (avalue > 0 && depthValue>0) {
+                /*if (avalue > 0 && depthValue>0)*/ {
                     // if depthValue is not NaN
                         // Find 3D position respect to rgb frame:
                         newPoint1.z = depthValue;
@@ -250,9 +250,9 @@ template <class DataTypes>
 void PointCloudExtractor<DataTypes>::extractTargetPCD() {
 
     int t = (int)this->getContext()->getTime();
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr targetP ;
+    PointCloud::Ptr targetP ;
 
-    targetP.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+    targetP.reset(new PointCloud);
     targetP = PCDFromRGBD(depth,foreground);
     VecCoord targetpos;
 
@@ -260,15 +260,17 @@ void PointCloudExtractor<DataTypes>::extractTargetPCD() {
         return ;
     }
 
-    target.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+    target.reset(new PointCloud);
     target = targetP;
     targetpos.resize(target->size());
 
-    Vector3 pos;
+//    std::cout << "target : " << target->size() << std::endl ;
     for (unsigned int i=0; i<target->size(); i++) {
-        pos[0] = (double)target->points[i].x;
-        pos[1] = (double)target->points[i].y;
-        pos[2] = (double)target->points[i].z;
+        Vector3 pos = Vector3 (
+            (double)target->points[i].x,
+            (double)target->points[i].y,
+            (double)target->points[i].z
+        ) ;
         targetpos[i]=pos;
         //std::cout << " target " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
     }
@@ -511,13 +513,13 @@ template <class DataTypes>
 void PointCloudExtractor<DataTypes>::handleEvent(sofa::core::objectmodel::Event *event) {
     if (dynamic_cast<simulation::AnimateBeginEvent*>(event)) {
         helper::AdvancedTimer::stepBegin("PointCloudExtractor") ;
-        static bool initsegmentation = true ;
 
         if (!useContour.getValue()) {
             extractTargetPCD();
         } else {
             extractTargetPCDContour();
         }
+        static bool initsegmentation = true ;
         if (initsegmentation) {
             setCameraPose();
             initsegmentation = false;
@@ -594,19 +596,19 @@ void PointCloudExtractor<DataTypes>::draw(const core::visual::VisualParams* vpar
 
     if (drawPointCloud.getValue() && xtarget.size() > 0){
         std::vector< sofa::defaulttype::Vector3 > points;
-        sofa::defaulttype::Vector3 point;
+        //std::cout << "xtarget : " << xtarget.size() << std::endl ;
 
+        points.resize(0);
         for (unsigned int i=0; i< xtarget.size(); i++) {
-            points.resize(0);
-            point = DataTypes::getCPos(xtarget[i]);
+            sofa::defaulttype::Vector3 point = DataTypes::getCPos(xtarget[i]);
+            vparams->drawTool()->drawSphere(point, 0.008);
             points.push_back(point);
             // std::cout << curvatures.getValue()[i] << std::endl;
             //if (targetWeights.getValue().size()>0) vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(0.5*targetWeights.getValue()[i],0,0,1));
-            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
+//            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
+//            vparams->drawTool()->drawPoint(point, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
         }
-
     }
-
 }
 
 } // rgbdtracking

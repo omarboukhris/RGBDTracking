@@ -2,17 +2,7 @@
 <Node name="root" gravity="0 0 0" dt="1"  >
 	<RequiredPlugin name="RGBDTracking" pluginName="RGBDTracking" />
 	<RequiredPlugin name="OpenCVPlugin" pluginName="OpenCVPlugin" />
-<!--
-	<Node name="cam">
-		<RealSenseCam  
-			name="rsCam" 
-			transform="0 0 0 0 0 0 .001 .001 1 0 1 1" 
-			depthTransform="0 0 0 0 0 0 .001 .001 1 0 1 1" 
-			tiltAngle="0"
-		/>
-		<CImg2OpenCV  name="cvConv" cimg="@rsCam.image" />
-	</Node>
--->
+
 	<Node name="rgbd_pipeline" >
 	
 		<EulerImplicitSolver rayleighStiffness="0.01" />
@@ -51,8 +41,9 @@
 			foreground="@grabcut.out"
 			depth="@fakecam.depth"
 			color="@fakecam.image"
-			sigmaWeight = "4"
-			samplePCD = "4"
+			useContour="0"
+			sigmaWeight = "8"
+			samplePCD = "1"
 			borderThdPCD = "4"
 			drawPointCloud="1"
 			cameraIntrinsicParameters="275.0 275.0 160.0 120.0"
@@ -148,9 +139,9 @@
 
 <!-- 	320/240 -->
 
-	<OpenCVViewer 
+<!--	<OpenCVViewer 
 		name="viewer" 
 		image="@rgbd_pipeline/grabcut.out" 
-	/>
+	/>-->
 
 </Node>

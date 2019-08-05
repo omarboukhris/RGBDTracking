@@ -156,7 +156,7 @@ public:
 
     int ntargetcontours;
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr target ;
+    PointCloud::Ptr target ;
 
 
     PointCloudExtractor();

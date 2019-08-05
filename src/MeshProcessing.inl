@@ -165,7 +165,6 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 
 	std::vector<cv::Point> ptfgd;
 	ptfgd.resize(0);
-	cv::Point pt;
     double clip_z;
 
 	for (int j = 0; j < wdth; j++) {
@@ -182,8 +181,7 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 				//std::cout << " dpethsN " <<  depthsN[j+i*wdth] << std::endl;
 
 				if ( depthsN[j+i*wdth] > -10 && depthsN[j+i*wdth] < -0.05) {
-					pt.x = j;
-					pt.y = i;
+                    cv::Point pt = cv::Point(j, i) ;
 					ptfgd.push_back(pt);
 					_rtd0.at<uchar>(hght-i-1,j) = 255;
 				} else {
@@ -201,10 +199,7 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 	cv::Rect rectrtt = cv::boundingRect(ptfgd);
 
 	if (ptfgd.size()==0) {
-		rectRtt.x = 0;
-		rectRtt.y = 0;
-		rectRtt.height = hght;
-		rectRtt.width = wdth;
+        rectRtt = cv::Rect (0, 0, wdth, hght) ;
 	} else {
 		rectRtt = rectrtt;
 
@@ -212,12 +207,13 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 			rectRtt.x -= 10;
 		if (rectRtt.y >=10)
 			rectRtt.y -= 10;
-		if (rectRtt.y + rectRtt.height < hght - 20)
+
+        if (rectRtt.y + rectRtt.height < hght - 20)
 			rectRtt.height += 20;
 		if (rectRtt.x + rectRtt.width < wdth - 20)
 			rectRtt.width += 20;
 
-		std::cout << " rect1 " << rectRtt.x << " " << rectRtt.y << " rect2 " << rectRtt.width << " " << rectRtt.height << std::endl;
+        //std::cout << " rect1 " << rectRtt.x << " " << rectRtt.y << " rect2 " << rectRtt.width << " " << rectRtt.height << std::endl;
 	}
 
 	depthMap = _rtd0.clone();
@@ -251,8 +247,8 @@ void MeshProcessing<DataTypes>::getSourceVisible(double znear, double zfar)
 		int x_v = (int)(x[k][1]*rgbIntrinsicMatrix(1,1)/x[k][2] + rgbIntrinsicMatrix(1,2));
 
 		if (x_u>=0 && x_u<wdth && x_v<hght && x_v >= 0){
-			if((float)abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() ||
-				(float)depthsN[x_u+(hght-x_v-1)*wdth] == 0
+            if(abs(depthsN[x_u+(hght-x_v-1)*wdth]+(float)x[k][2]) < visibilityThreshold.getValue() ||
+               depthsN[x_u+(hght-x_v-1)*wdth] == 0
 			) {
 				sourcevisible[k] = true;
 				pos = x[k];
@@ -280,8 +276,8 @@ void MeshProcessing<DataTypes>::updateSourceVisible()
     helper::vector<bool> sourcevisible = sourceVisible.getValue();
     for (unsigned int i=0; i< x.size(); i++) {
         if (sourcevisible[i]) {
-            Vector3 pos = x[i];
-            sourceVis.push_back(pos);
+            // Vector3 pos = x[i];
+            sourceVis.push_back(x[i]);
         }
     }
     sourceVisiblePositions.setValue(sourceVis);

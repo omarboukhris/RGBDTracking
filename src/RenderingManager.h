@@ -52,7 +52,7 @@ namespace rgbdtracking {
 class RenderingManager : public core::visual::VisualManager
 {
 public:
-    SOFA_CLASS(RenderingManager,core::visual::VisualModel);
+    SOFA_CLASS(RenderingManager,core::visual::VisualManager);
 
 private:
     typedef sofa::defaulttype::Vector4 Vector4;
@@ -76,13 +76,6 @@ protected:
     RenderingManager();
     virtual ~RenderingManager();
 public:
-
-    // used to get znear and zfar
-    // deprecated in code, link should be removed
-    core::objectmodel::SingleLink<
-        RenderingManager,
-        component::visualmodel::BaseCamera,
-        BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_currentcamera ;
 
     void init() override;
     void reinit() override {}

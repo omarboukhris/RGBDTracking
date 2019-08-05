@@ -73,7 +73,6 @@ RenderingManager::RenderingManager()
     ,niterations(initData(&niterations,1,"niterations","Number of iterations in the tracking process"))
     ,useRenderAR(initData(&useRenderAR, false, "useRenderAR", "Option to enable augmented reality overlay"))
 {
-    // TODO Auto-generated constructor stub
 }
 
 RenderingManager::~RenderingManager()
@@ -109,18 +108,14 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
 
     helper::AdvancedTimer::stepBegin("Rendering") ;
 
-    double znear, zfar ;
-    if (l_currentcamera) {
-        znear = l_currentcamera->getZNear();
-        zfar = l_currentcamera->getZFar();
-    } else {
-        sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
-        sofa::component::visualmodel::BaseCamera::SPtr currentCamera;
-        root->get(currentCamera);
+    sofa::simulation::Node::SPtr root = dynamic_cast<simulation::Node*>(this->getContext());
+    sofa::component::visualmodel::BaseCamera::SPtr currentCamera;
+    root->get(currentCamera);
 
-        znear = currentCamera->getZNear();
-        zfar = currentCamera->getZFar();
-    }
+    double
+        znear = currentCamera->getZNear(),
+        zfar = currentCamera->getZFar() ;
+
     zNear.setValue(znear);
     zFar.setValue(zfar);
     std::cout << zNear << " " << zFar << std::endl ;
@@ -134,7 +129,7 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
     int wdth = viewport[2];
     int hght = viewport[3];
 
-    int wdth_1,hght_1/*, x_1, y_1;*/ ;
+    int wdth_1,hght_1 ;
     if (useBBox.getValue() && BBox.getValue()[2]>0 &&
         (int)this->getContext()->getTime()>5) {
         x_1 = BBox.getValue()[0];
@@ -142,17 +137,12 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
         wdth_1 = BBox.getValue()[2];
         hght_1 = BBox.getValue()[3];
     } else {
-//        x_1 = x,
-//        y_1 = y;
         wdth_1 = wdth;
         hght_1 = hght;
     }
     float *depths = new float[wdth_1 * hght_1 ];
     cv::Mat depthm;
     depthm.create(hght, wdth, CV_32F);
-
-    //std::cout << " znear1 " << znear << " zfar1 " << zfar << std::endl;
-    //std::cout << " viewport1 " << x_1 << " "<< x_1 + wdth_1 << " " << y_1 << " " <<y_1 + hght_1 << std::endl;
 
     if ( (int)this->getContext()->getTime()%niterations.getValue() == 0) {
         glReadPixels(x_1, y_1, wdth_1, hght_1, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
@@ -168,8 +158,7 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
         }
 
         depthmat = depthm.clone();
-        cv::imshow("img2", depthm) ;
-//        std::cout << depthm << std::endl ;
+//        cv::imshow("img2", depthmat) ;
 
         if (useRenderAR.getValue()) {
             texturemat.create(hght,wdth, CV_8UC3);
@@ -182,7 +171,6 @@ void RenderingManager::postDrawScene(VisualParams* /*vp*/) {
     helper::AdvancedTimer::stepEnd("Rendering") ;
     std::cout << "OUT" << std::endl ;
     delete depths;
-
 }
 
 void RenderingManager::handleEvent(sofa::core::objectmodel::Event* /*event*/)

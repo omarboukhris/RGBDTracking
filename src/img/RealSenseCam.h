@@ -82,8 +82,6 @@ using namespace boost;
 using namespace rs2;
 
 
-void* globalRealSenseCamClassPointer;
-
 class RealSenseCam : public virtual core::objectmodel::BaseObject
 {
 public:
@@ -405,14 +403,12 @@ RealSenseCam::RealSenseCam() : Inherited()
         , drawBB(initData(&drawBB,false,"drawBB","draw bounding box"))
         , depthScale(initData(&depthScale,1,"depthScale","scale for the depth values, 1 for SR300, 10 for 435"))
     {
-
-    globalRealSenseCamClassPointer = (void*) this;
-    this->addAlias(&imageO, "inputImage");
-    this->addAlias(&transform, "inputTransform");
-    transform.setGroup("Transform");
-    depthTransform.setGroup("Transform");
-    f_listening.setValue(true);  // to update camera during animate
-    drawBB = false;
+        this->addAlias(&imageO, "inputImage");
+        this->addAlias(&transform, "inputTransform");
+        transform.setGroup("Transform");
+        depthTransform.setGroup("Transform");
+        f_listening.setValue(true);  // to update camera during animate
+        drawBB = false;
     }
 
 

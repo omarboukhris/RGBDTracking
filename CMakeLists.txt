@@ -44,8 +44,8 @@ find_package(OpenCVPlugin REQUIRED)
 set(ALL_LIBRARIES ${OpenCV_LIBS} freeimage ${FREEGLUT_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${VISP_LIBRARIES})
 
 set(HEADER_FILES
-#	RGBDDataProcessing.h
-#	RGBDDataProcessing.inl
+	RGBDDataProcessing.h
+	RGBDDataProcessing.inl
 #	DataIO.h
 #	DataIO.inl
 #	MeshProcessing.h
@@ -59,7 +59,7 @@ set(HEADER_FILES
 #	ImageConverter.h
 #	ImageConverter.inl
 #	segmentation.h
-	RenderingManager.h
+#	RenderingManager.h
 #	VirtualCamera.h
 #	VirtualCamera.inl
 
@@ -67,6 +67,7 @@ set(HEADER_FILES
 	src/img/RealSense.h
 	src/img/FakeCam.h
 	src/img/FakeCam.inl
+	src/img/RSDeprojector.h
 
 	src/RenderingManager.h
 	src/MeshProcessing.h
@@ -101,12 +102,13 @@ set(SOURCE_FILES
 #	RenderTextureAR.cpp
 #	ClosestPoint.cpp
 #	ClosestPointForceField.cpp
-	RenderingManager.cpp
+#	RenderingManager.cpp
 #	VirtualCamera.cpp
 
 	src/img/RealSenseCam.cpp
 	src/img/RealSense.cpp
 	src/img/FakeCam.cpp
+	src/img/RSDeprojector.cpp
 
 	src/RenderingManager.cpp
 	src/MeshProcessing.cpp

@@ -49,7 +49,7 @@
 #include <map>
 
 #include <sofa/opencvplugin/OpenCVWidget.h>
-#include <sofa/opencvplugin/utils/OpenCVMouseEvents.h>
+#include <sofa/opencvplugin/BaseOpenCVStreamer.h>
 
 namespace sofa
 {
@@ -68,13 +68,11 @@ using namespace boost;
 using namespace rs2;
 
 
-void* globalRealSenseClassPointer;
-
-class RealSense : public core::objectmodel::BaseObject
+class RealSense : public opencvplugin::streamer::BaseOpenCVStreamer //core::objectmodel::BaseObject
 {
 public:
-    SOFA_CLASS( RealSense , core::objectmodel::BaseObject);
-    typedef core::objectmodel::BaseObject Inherited;
+    SOFA_CLASS( RealSense , opencvplugin::streamer::BaseOpenCVStreamer );
+    typedef opencvplugin::streamer::BaseOpenCVStreamer Inherited;
 
     Data<int> depthMode;
     Data<int> depthScale;
@@ -82,8 +80,15 @@ public:
     Data<opencvplugin::ImageData> d_color ;
     Data<opencvplugin::ImageData> d_depth ;
 
+    rs2_intrinsics cam_intrinsics ;
+    rs2::pipeline_profile selection ;
+
     // Declare depth colorizer for pretty visualization of depth data
 	rs2::colorizer color_map;
+
+    // for pointcloud extraction
+    rs2::pointcloud pc ;
+    rs2::points points ;
 
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe;
@@ -93,8 +98,6 @@ public:
 	// Using the context to create a rs2::align object.
 	// rs2::align allows you to perform aliment of depth frames to others
 
-public:
-
     RealSense()
         : Inherited()
         , depthMode ( initData ( &depthMode,1,"depthMode","depth mode" ))
@@ -102,30 +105,48 @@ public:
         , d_color(initData(&d_color, "color", "RGB data image"))
         , d_depth(initData(&d_depth, "depth", "depth data image"))
     {
+        this->f_listening.setValue(true) ;
     }
 
-    virtual ~RealSense () {
+    ~RealSense () {
     }
 
-	virtual void init() {
+    void init() {
         initAlign();
-//        cv::namedWindow("title") ;
-//        std::vector<cv::Point> pts = opencvplugin::utils::mouseevents::pointsDrawer("title", d_depth.getValue().getImage()) ;
-//        for (cv::Point pt : pts) {
-//            std::cout << pt.x << " " << pt.y << std::endl ;
-//        }
-//        std::cout << pts.size() << std::endl ;
-//        cv::Rect r = opencvplugin::utils::mouseevents::rectangleDrawer("title", d_depth.getValue().getImage()) ;
     }
 
-    void draw(const core::visual::VisualParams*){
+
+    void decodeImage(cv::Mat & /*img*/) {
         acquireAligned();
     }
 
 protected:
 
+    void calc_intrinsics (rs2::video_stream_profile video_stream) {
+        try
+        {
+            //If the stream is indeed a video stream, we can now simply call get_intrinsics()
+            cam_intrinsics = video_stream.get_intrinsics();
+
+//            auto principal_point = std::make_pair(intrinsics.ppx, intrinsics.ppy);
+//            auto focal_length = std::make_pair(intrinsics.fx, intrinsics.fy);
+//            rs2_distortion model = intrinsics.model;
+
+//            std::cout << "Principal Point         : " << principal_point.first << ", " << principal_point.second << std::endl;
+//            std::cout << "Focal Length            : " << focal_length.first << ", " << focal_length.second << std::endl;
+//            std::cout << "Distortion Model        : " << model << std::endl;
+//            std::cout << "Distortion Coefficients : [" << intrinsics.coeffs[0] << "," << intrinsics.coeffs[1] << "," <<
+//                intrinsics.coeffs[2] << "," << intrinsics.coeffs[3] << "," << intrinsics.coeffs[4] << "]" << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to get intrinsics for the given stream. " << e.what() << std::endl;
+        }
+    }
+
     void initAlign() {
-        pipe.start();
+        selection = pipe.start();
+        auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>() ;
+        calc_intrinsics(depth_stream);
+
         rs2::align align(RS2_STREAM_COLOR);
         rs2::frameset frameset;
 
@@ -152,6 +173,8 @@ protected:
         int widthc = color.get_width();
         int heightc = color.get_height();
 
+        // extract pointcloud
+        getpointcloud(color, depth) ;
 
         // Create depth image
 
@@ -170,11 +193,12 @@ protected:
     }
 
     void acquireAligned() {
+        auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>() ;
+        calc_intrinsics(depth_stream);
+
 		rs2::align align(RS2_STREAM_COLOR);
 
 		rs2::frameset frameset;
-
-		//double timeAcq0 = (double)getTickCount();
 
 		while (
 			!frameset.first_or_default(RS2_STREAM_DEPTH) || 
@@ -194,9 +218,10 @@ protected:
         int widthc = color.get_width();
         int heightc = color.get_height();
 
+        // extract pointcloud
+        getpointcloud(color, depth) ;
 
-        // Create depth image
-
+        // Create depth & color images
         cv::Mat
             rgb0(heightc,widthc, CV_8UC3, (void*) color.get_data()),
             & bgr_image = *d_color.beginEdit() ;
@@ -210,6 +235,15 @@ protected:
         depth16.convertTo(depth8, CV_8U, 1.f/64*depthScale.getValue()); //depth32 is output
         d_depth.endEdit();
 
+    }
+
+protected :
+    void getpointcloud (rs2::frame color, rs2::frame depth) {
+        if (color) {
+            pc.map_to (color) ;
+        }
+
+        points = pc.calculate(depth) ;
     }
 
 };
