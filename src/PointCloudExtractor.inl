@@ -167,7 +167,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
                 //std::cout << "IN" << std::endl ;
                 // if depthValue is not NaN
                 // Find 3D position respect to rgb frame:
-                   newPoint.z = depthValue;
+                newPoint.z = depthValue;
                 newPoint.x = (sample*j - rgbIntrinsicMatrix(0,2)) * newPoint.z * rgbFocalInvertedX;
                 newPoint.y = (sample*i - rgbIntrinsicMatrix(1,2)) * newPoint.z * rgbFocalInvertedY;
                 newPoint.r = rgbImage.at<cv::Vec4b>(sample*i,sample*j)[2];

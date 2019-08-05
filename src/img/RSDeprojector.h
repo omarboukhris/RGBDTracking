@@ -91,11 +91,11 @@ public:
         , d_color(initData(&d_color, "color", "segmented color data image"))
         , d_output(initData(&d_output, "output", "output 3D position"))
         , d_drawpcl(initData(&d_drawpcl, false, "drawpcl", "true if you want to draw the point cloud"))
-        , d_downsampler(initData(&d_downsampler, 20, "downsample", "point cloud downsampling"))
+        , d_downsampler(initData(&d_downsampler, 5, "downsample", "point cloud downsampling"))
         , l_rs_cam(initLink("rscam", "link to realsense camera component - used for getting camera intrinsics"))
     {
         c_image.addInputs({&d_depth});
-        c_image.addCallback(std::bind(&RSDeprojector::deproject_image2, this));
+        c_image.addCallback(std::bind(&RSDeprojector::deproject_image, this));
     }
 
     virtual ~RSDeprojector () {
@@ -109,28 +109,38 @@ public:
             std::endl ;
             return ;
         }
-        cam_intrinsics = l_rs_cam->cam_intrinsics ;
+
+        rs2::depth_frame depth = *l_rs_cam->depth ;
+        cam_intrinsics = depth.get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
 
         // get depth image
-        cv::Mat depth_im = l_rs_cam->d_depth.getValue().getImage() ;
+        cv::Mat depth_im = d_depth.getValue().getImage() ;
+        cv::Mat color_im = d_color.getValue().getImage() ;
+        cv::cvtColor(color_im, color_im, cv::COLOR_BGR2GRAY);
 
         // setup output
         helper::vector<defaulttype::Vector3> & output = *d_output.beginEdit() ;
         output.clear () ;
-        for (size_t i = 0 ; i < depth_im.rows ; ++i) {
-            for (size_t j = 0 ; j < depth_im.cols ; ++j) {
+        int downSample = d_downsampler.getValue() ;
+        for (size_t i = 0 ; i < depth_im.rows/downSample ; ++i) {
+            for (size_t j = 0 ; j < depth_im.cols/downSample ; ++j) {
+                //if (depth_im.at<const float>(downSample*i,downSample*j) > 0) {
+                // if depth value @[i,j] greater than 0
                 // deprojection point-wise happens here
-                float
-                    point3d[3] = {0.f, 0.f, 0.f},
-                    point2d[2] = {i, j};
-                rs2_deproject_pixel_to_point(
-                    point3d,
-                    &cam_intrinsics,
-                    point2d,
-                    depth_im.at<const float>(i,j)
-                );
-                defaulttype::Vector3 deprojected_point = defaulttype::Vector3(point3d[0], point3d[1], point3d[2]) ;
-                output.push_back(deprojected_point) ;
+                // idea #2 : filter pixel-wise depending on grabcut results
+                    float dist = depth.get_distance(downSample*i, downSample*j) ;
+                    float
+                        point3d[3] = {0.f, 0.f, 0.f},
+                        point2d[2] = {downSample*i, downSample*j};
+                    rs2_deproject_pixel_to_point(
+                        point3d,
+                        &cam_intrinsics,
+                        point2d,
+                        dist
+                    );
+                    defaulttype::Vector3 deprojected_point = defaulttype::Vector3(point3d[0], point3d[1], point3d[2]) ;
+                    output.push_back(deprojected_point) ;
+                //}
             }
         }
         // the end
@@ -149,20 +159,6 @@ public:
         output.clear () ;
         pointcloud2vectors (output, l_rs_cam->points) ;
         d_output.endEdit() ;
-    }
-
-    void pointcloud2vectors (helper::vector<defaulttype::Vector3> & out, const rs2::points& points) {
-        auto ptr = points.get_vertices() ;
-        int downSample = d_downsampler.getValue() ;
-        for (size_t i = 0; i < points.size() ; i++, ptr++ ) {
-            if (i % downSample == 0) {
-            if (ptr->z) {
-                out.push_back (
-                    defaulttype::Vector3 (ptr->x, ptr->y, ptr->z)
-                ) ;
-            }
-            }
-        }
     }
 
     void draw(const core::visual::VisualParams* vparams) {
@@ -184,6 +180,20 @@ public:
             }
         }
     }
+
+protected :
+    void pointcloud2vectors (helper::vector<defaulttype::Vector3> & out, const rs2::points& points) {
+        auto ptr = points.get_vertices() ;
+        int downSample = d_downsampler.getValue() ;
+        for (size_t i = 0; i < points.size() ; i++, ptr++ ) {
+            if (i % downSample == 0 && ptr->z) {
+                out.push_back (
+                    defaulttype::Vector3 (ptr->x, ptr->y, ptr->z)
+                ) ;
+            }
+        }
+    }
+
 };
 
 }
