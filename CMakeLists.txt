@@ -21,7 +21,6 @@ ENDIF(WITH_CUDA)
 
 find_package(realsense2 REQUIRED)
 find_package(CImgPlugin QUIET)
-#find_package(OpenCVPlugin REQUIRED)
 #find_package(image QUIET)
 
 FIND_PACKAGE(VISP REQUIRED)
@@ -63,11 +62,11 @@ set(HEADER_FILES
 #	VirtualCamera.h
 #	VirtualCamera.inl
 
-	src/img/RealSenseCam.h
-	src/img/RealSense.h
-	src/img/FakeCam.h
-	src/img/FakeCam.inl
-	src/img/RSDeprojector.h
+	src/realsense/RealSenseCam.h
+	src/realsense/RealSenseFakeCam.h
+	src/realsense/RealSenseDeprojector.h
+	src/realsense/RealSensePointDeprojector.h
+	src/realsense/RealSenseGrabCut.h
 
 	src/RenderingManager.h
 	src/MeshProcessing.h
@@ -105,10 +104,11 @@ set(SOURCE_FILES
 #	RenderingManager.cpp
 #	VirtualCamera.cpp
 
-	src/img/RealSenseCam.cpp
-	src/img/RealSense.cpp
-	src/img/FakeCam.cpp
-	src/img/RSDeprojector.cpp
+	src/realsense/RealSenseCam.cpp
+	src/realsense/RealSenseFakeCam.cpp
+	src/realsense/RealSenseDeprojector.cpp
+	src/realsense/RealSensePointDeprojector.cpp
+	src/realsense/RealSenseGrabCut.cpp
 
 	src/RenderingManager.cpp
 	src/MeshProcessing.cpp
@@ -201,9 +201,9 @@ sofa_set_python_directory(RGBDTracking "python")
 
 #Get nvcc compiler to build the library
 if(HAVECUDA)
-cuda_add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${CUDA_SOURCES} ${README_FILES} OPTIONS ${VERBOSE_PTXAS})
+	cuda_add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${CUDA_SOURCES} ${README_FILES} OPTIONS ${VERBOSE_PTXAS})
 else(HAVECUDA)
-add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILES})
+	add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${README_FILES})
 endif(HAVECUDA)
 
 if(SOFA-CUDA_CUBLAS)
@@ -217,7 +217,7 @@ target_link_libraries(
 	${PROJECT_NAME}
 	${ALL_LIBRARIES}
 	${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY}
-	realsense2::realsense2
+	${realsense2_LIBRARY}
 	CImgPlugin
 	OpenCVPlugin
 	SofaGuiQt

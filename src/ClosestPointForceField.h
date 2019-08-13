@@ -27,7 +27,7 @@
 #define SOFA_RGBDTRACKING_CLOSESTPOINTFORCEFIELD_H
 
 #include <RGBDTracking/src/PointCloudExtractor.h>
-#include <RGBDTracking/src/img/FakeCam.h>
+#include <RGBDTracking/src/realsense/RealSenseFakeCam.h>
 #include <RGBDTracking/src/ClosestPoint.h>
 //#include <RGBDTracking/src/RGBDDataProcessing.h>
 #include <RGBDTracking/src/MeshProcessing.h>
@@ -121,7 +121,7 @@ public:
 
     core::objectmodel::SingleLink<
         ClosestPointForceField<DataTypes>,
-        FakeCam<DataTypes>,
+        RealSenseFakeCam<DataTypes>,
         BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK> l_cam ;
     core::objectmodel::SingleLink<
         ClosestPointForceField<DataTypes>,

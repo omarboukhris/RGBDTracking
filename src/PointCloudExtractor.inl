@@ -160,7 +160,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudExtractor<DataTypes>::PCDFromRG
     for (int i=0;i<(int)depthImage.rows/sample;i++) {
         for (int j=0;j<(int)depthImage.cols/sample;j++) {
 
-            float depthValue = (float)depthImage.at<float>(sample*i,sample*j) * 0.819;
+            uchar depthValue = (uchar)depthImage.at<uchar>(sample*i,sample*j) ;//* 0.819;
             int avalue = (int)rgbImage.at<Vec4b>(sample*i,sample*j)[3];
 
             if (avalue > 0 && depthValue>0) {
@@ -593,10 +593,10 @@ void PointCloudExtractor<DataTypes>::draw(const core::visual::VisualParams* vpar
 
 //        vparams->drawTool()->restoreLastState();
 //    }
-
+    std::cout << "in xtarget : " << xtarget.size() << std::endl ;
     if (drawPointCloud.getValue() && xtarget.size() > 0){
         std::vector< sofa::defaulttype::Vector3 > points;
-        //std::cout << "xtarget : " << xtarget.size() << std::endl ;
+        std::cout << "xtarget : " << xtarget.size() << std::endl ;
 
         points.resize(0);
         for (unsigned int i=0; i< xtarget.size(); i++) {
@@ -608,6 +608,7 @@ void PointCloudExtractor<DataTypes>::draw(const core::visual::VisualParams* vpar
 //            vparams->drawTool()->drawPoints(points, 10, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
 //            vparams->drawTool()->drawPoint(point, sofa::defaulttype::Vec<4,float>(1,0.5,0.5,1));
         }
+        std::cout << "out" << std::endl ;
     }
 }
 

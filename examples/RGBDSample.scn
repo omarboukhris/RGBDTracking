@@ -23,7 +23,7 @@
 		/>
 		<UniformMass vertexMass="0.2"/>
 
-		<FakeCam 
+		<RealSenseFakeCam 
 			name="fakecam"
 			inputPath = "/home/omar/projects/RGBDTracking/examples/images/imagesInteraction"
 			outputPath = "out/imagesInteraction00001"
@@ -72,6 +72,7 @@
 			drawVisibleMesh="1"
 			useSIFT3D="0"
 		/>
+<!--
 		<RenderTextureAR 
 			name="rendertexturear"
 			renderingmgr="@../renderingmanager"
@@ -111,7 +112,7 @@
 			useVisible = "@mp1.useVisible"
 			useDistContourNormal = "0"
 			niterations = "1"
-		/>
+		/>-->
 		
 		<Node name="sourceSurface">
 			<MeshObjLoader 
