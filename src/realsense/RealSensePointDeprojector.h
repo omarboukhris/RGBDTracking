@@ -72,13 +72,9 @@ public:
     SOFA_CLASS( RealSensePointDeprojector , core::objectmodel::BaseObject);
     typedef core::objectmodel::BaseObject Inherited;
 
-//    Data<opencvplugin::ImageData> d_depth ;
-//    Data<opencvplugin::ImageData> d_color ;
-//    Data<opencvplugin::ImageData> d_color_gray ;
-    Data<int> d_downsampler ;
-    Data<bool> d_drawpcl ;
     Data<helper::vector<defaulttype::Vector2> > d_input ;
     Data<helper::vector<defaulttype::Vector3> > d_output ;
+    Data<bool> d_drawpcl ;
 
     core::objectmodel::SingleLink<
         RealSensePointDeprojector,
@@ -86,19 +82,13 @@ public:
         BaseLink::FLAG_STOREPATH|BaseLink::FLAG_STRONGLINK
     > l_rs_cam ; //for intrinsics
 
-    rs2_intrinsics cam_intrinsics ;
-
     DataCallback c_image ;
 
     RealSensePointDeprojector()
         : Inherited()
-//        , d_depth(initData(&d_depth, "depth", "segmented depth data image"))
-//        , d_color(initData(&d_color, "color", "segmented color data image"))
-//        , d_color_gray(initData(&d_color_gray, "colorg", "segmented color data image"))
         , d_input(initData(&d_input, "input", "input 2D position to de-project"))
         , d_output(initData(&d_output, "output", "output 3D position"))
         , d_drawpcl(initData(&d_drawpcl, false, "drawpcl", "true if you want to draw the point cloud"))
-//        , d_downsampler(initData(&d_downsampler, 5, "downsample", "point cloud downsampling"))
         , l_rs_cam(initLink("rscam", "link to realsense camera component - used for getting camera intrinsics"))
     {
         c_image.addInputs({&d_input});
@@ -122,14 +112,14 @@ public:
         }
         // get intrinsics from link to rs-cam component
         rs2::depth_frame depth = *l_rs_cam->depth ;
-        cam_intrinsics = depth.get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
+        rs2_intrinsics cam_intrinsics = depth.get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
 
         // setup output
         const helper::vector<defaulttype::Vector2> input = d_input.getValue() ;
         helper::vector<defaulttype::Vector3> & output = *d_output.beginEdit() ;
         output.clear () ;
         for (defaulttype::Vector2 vec : input) {
-            float dist = depth.get_distance(vec[0], vec[1]) ;
+            float dist = depth.get_distance(vec[1], vec[0]) ;
             float
                 point3d[3] = {0.f, 0.f, 0.f},
                 point2d[2] = {vec[0], vec[1]};
@@ -139,7 +129,7 @@ public:
                 point2d,
                 dist
             );
-            defaulttype::Vector3 deprojected_point = defaulttype::Vector3(point3d[0], point3d[1], point3d[2]) ;
+            defaulttype::Vector3 deprojected_point = defaulttype::Vector3(point3d[1], point3d[0], point3d[2]) ;
             output.push_back(deprojected_point) ;
         }
         // the end
@@ -153,15 +143,8 @@ public:
         }
 
         helper::vector<defaulttype::Vector3> output = d_output.getValue() ;
-        if (output.size()){
-            std::vector< sofa::defaulttype::Vector3 > points;
-
-            points.resize(0);
-            for (unsigned int i=0; i< output.size(); i++) {
-                sofa::defaulttype::Vector3 point = output[i] ;
-                vparams->drawTool()->drawSphere(point, 0.0008);
-                points.push_back(point);
-            }
+        for (unsigned int i=0; i< output.size(); i++) {
+            vparams->drawTool()->drawSphere(output[i], 0.0008);
         }
     }
 

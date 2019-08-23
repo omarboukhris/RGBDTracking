@@ -54,7 +54,6 @@
 #include <map>
 
 #include <sofa/opencvplugin/OpenCVWidget.h>
-#include <sofa/opencvplugin/utils/OpenCVMouseEvents.h>
 #include <RGBDTracking/src/realsense/RealSenseCam.h>
 
 #include <pcl/point_cloud.h>
@@ -132,8 +131,8 @@ public:
         const cv::Mat depth_im,
         rs2::depth_frame depth
     ) {
-//        cv::Mat color_gray ;
-//        cv::cvtColor(color_im, color_gray, cv::COLOR_BGR2GRAY);
+        //cv::Mat color_gray ;
+        //cv::cvtColor(color_im, color_gray, cv::COLOR_BGR2GRAY);
 
         //output.clear () ;
         //colors.clear() ;
@@ -156,7 +155,6 @@ public:
                     );
 
                     // set units
-                    pcl::PointXYZ pclpoint = pcl::PointXYZ(point3d[1], point3d[0], point3d[2]) ;
                     pcl::PointXYZ pclpoint = pcl::PointXYZ(point3d[1], point3d[0], point3d[2]) ;
                     //cv::Vec3b color = color_im.at<cv::Vec3b>(downSample*i,downSample*j) ;
                     //defaulttype::Vector3 deprojected_point = defaulttype::Vector3(point3d[0], point3d[1], point3d[2]) ;
@@ -182,6 +180,14 @@ public:
         // get intrinsics from link to rs-cam component
         rs2::depth_frame depth = *l_rs_cam->depth ;
         cam_intrinsics = depth.get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
+//        std::cout
+//            << cam_intrinsics.fx  << std::endl
+//            << cam_intrinsics.fy  << std::endl
+//            << cam_intrinsics.ppx  << std::endl
+//            << cam_intrinsics.ppy  << std::endl
+//            << cam_intrinsics.height  << std::endl
+//            << cam_intrinsics.width  << std::endl <<
+//        std::endl ;
 
         // get depth & color image
         cv::Mat color_im, color_tmp = d_color.getValue().getImage(),
@@ -189,7 +195,7 @@ public:
 
         // setup output
         helper::vector<defaulttype::Vector3> & output = *d_output.beginEdit() ;
-        this->erode_mask(color_tmp, color_im, 15) ;
+        //this->erode_mask(color_tmp, color_im, 15) ;
         this->get_point_cloud(m_colors, output, m_pointcloud, color_im, depth_im, depth);
         d_output.endEdit();
 
@@ -226,51 +232,18 @@ public:
                 auto color = m_colors[i++] ;
                 vparams->drawTool()->drawPoint(
                     defaulttype::Vector3(pt.x, pt.y, pt.z),
-                    sofa::defaulttype::Vec<4,float> (color[0],color[1],color[2],0)
+                    sofa::defaulttype::Vector4 (color[0],color[1],color[2],0)
                 );
             }
         } else {
             for (const auto & pt : *m_pointcloud) {
                 vparams->drawTool()->drawPoint(
                     defaulttype::Vector3(pt.x, pt.y, pt.z),
-                    sofa::defaulttype::Vec<4,float> (0, 0, 1, 0)
+                    sofa::defaulttype::Vector4 (0, 0, 255, 0)
                 );
             }
         }
     }
-
-//protected :
-//    /*!
-//     * \brief pointcloud2vectors : deprojects a set of 3D rs2::points in a vector of vec-3
-//     * \param out : vector of vec-3
-//     * \param points : rs2::points
-//     */
-//    void pointcloud2vectors (helper::vector<defaulttype::Vector3> & out, const rs2::points& points) {
-//        auto ptr = points.get_vertices() ;
-//        int downSample = d_downsampler.getValue() ;
-//        for (size_t i = 0; i < points.size() ; i++, ptr++ ) {
-//            if (i % downSample == 0 && ptr->z) {
-//                out.push_back (
-//                    defaulttype::Vector3 (ptr->x, ptr->y, ptr->z)
-//                ) ;
-//            }
-//        }
-//    }
-//    /*!
-//     * \brief deproject_image2 deprojects the whole depth stream without pixel-wise filtering
-//     */
-//    void deproject_image2 () {
-//        if (!l_rs_cam) {
-//            std::cerr <<
-//                "(RealSenseDeprojector) link to realsense cam component is broken" <<
-//            std::endl ;
-//            return ;
-//        }
-//        helper::vector<defaulttype::Vector3> & output = *d_output.beginEdit() ;
-//        output.clear () ;
-//        pointcloud2vectors (output, l_rs_cam->points) ;
-//        d_output.endEdit() ;
-//    }
 };
 
 }

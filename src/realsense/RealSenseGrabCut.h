@@ -52,6 +52,7 @@
 
 #include <sofa/opencvplugin/OpenCVWidget.h>
 #include <sofa/opencvplugin/BaseOpenCVStreamer.h>
+#include <sofa/opencvplugin/utils/OpenCVMouseEvents.h>
 
 #include <RGBDTracking/src/realsense/RealSenseCam.h>
 
@@ -84,6 +85,9 @@ public :
 
     DataCallback c_image_in ;
 
+    // bounding box rectangle
+    cv::Rect rect ;
+
     RealSenseGrabCut()
         : l_rs_cam(initLink("rscam", "link to realsense camera component - used for getting camera intrinsics"))
         , d_image_in(initData(&d_image_in, "in", "input data image"))
@@ -95,6 +99,12 @@ public :
     {
         c_image_in.addInputs({&d_image_in, &d_far_thr, &d_near_thr});
         c_image_in.addCallback(std::bind(&RealSenseGrabCut::realsense_grabcut, this));
+    }
+
+    void init() {
+        //cv::namedWindow("rect") ;
+        //rect = opencvplugin::utils::mouseevents::rectangleDrawer(
+        //    "rect", d_image_in.getValue()) ;
     }
 
     void realsense_grabcut () {
@@ -135,7 +145,7 @@ public :
         cv::grabCut(
             color_mat,
             mask,
-            Rect(),
+            rect,
             bgModel,
             fgModel,
             1,
@@ -143,9 +153,6 @@ public :
         );
 
         // Extract foreground pixels based on refined mask from the algorithm
-//        cv::Mat3b foreground = cv::Mat3b::zeros(color_mat.rows, color_mat.cols);
-//        color_mat.copyTo(foreground, (mask == GC_FGD) | (mask == GC_PR_FGD));
-
         cv::Mat maskimg , & imageDest = *d_image_out.beginEdit(), imgtmp, imgtmp2, & depthDest = *d_depth_out.beginEdit() ;
         cv::compare(mask,cv::GC_PR_FGD,maskimg,cv::CMP_EQ);
 
@@ -162,26 +169,6 @@ public :
     }
 
 protected :
-
-//    cv::Mat frame_to_mat (const rs2::frame & bw_depth) {
-//        rs2::video_frame depth = bw_depth.as<rs2::video_frame>() ;
-//        int widthc = depth.get_width();
-//        int heightc = depth.get_height();
-
-//        cv::Mat
-//            rgb0(heightc,widthc, CV_8UC3, (void*) depth.get_data()),
-//            bgr_image ;
-//        cv::cvtColor (rgb0, bgr_image, cv::COLOR_RGB2BGR); // bgr_image is output
-//        return bgr_image ;
-
-////        int widthd = depth.get_width();
-////        int heightd = depth.get_height();
-////        cv::Mat
-////            depth16 = cv::Mat(heightd, widthd, CV_16U, (void*)depth.get_data()),
-////            depth8 ;
-////        depth16.convertTo(depth8, CV_8U, 1.f/64); //depth32 is output
-////        return depth8 ;
-//    }
 
     void create_mask_from_depth (cv::Mat& depth, int thresh, cv::ThresholdTypes type) {
         #define EROSION_KERNEL_SIZE cv::Size(3, 3)
