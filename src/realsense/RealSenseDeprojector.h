@@ -180,14 +180,20 @@ public:
         // get intrinsics from link to rs-cam component
         rs2::depth_frame depth = *l_rs_cam->depth ;
         cam_intrinsics = depth.get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
-//        std::cout
-//            << cam_intrinsics.fx  << std::endl
-//            << cam_intrinsics.fy  << std::endl
-//            << cam_intrinsics.ppx  << std::endl
-//            << cam_intrinsics.ppy  << std::endl
-//            << cam_intrinsics.height  << std::endl
-//            << cam_intrinsics.width  << std::endl <<
-//        std::endl ;
+
+        std::fstream fstr ;
+        fstr.open("intrins.log", std::fstream::out); // | std::fstream::app) ;
+
+        fstr
+            << cam_intrinsics.fx  << std::endl
+            << cam_intrinsics.fy  << std::endl
+            << cam_intrinsics.ppx  << std::endl
+            << cam_intrinsics.ppy  << std::endl
+            << cam_intrinsics.height  << std::endl
+            << cam_intrinsics.width  << std::endl <<
+        std::endl ;
+
+        fstr.close();
 
         // get depth & color image
         cv::Mat color_im, color_tmp = d_color.getValue().getImage(),
