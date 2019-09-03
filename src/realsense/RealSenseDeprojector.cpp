@@ -38,13 +38,24 @@ using namespace std;
 using namespace cv;
 using namespace boost;
 
-SOFA_DECL_CLASS (RealSenseDeprojector)
 // Register in the Factory
+
+SOFA_DECL_CLASS (RealSenseDeprojector)
+SOFA_DECL_CLASS (RealSenseDistFrameExporter)
+SOFA_DECL_CLASS (RealSenseDistFrameStreamer)
 
 int RSDeprojectorClass = core::RegisterObject ( "deprojects realsense depth stream to 3d point cloud in sofa" )
         .add<RealSenseDeprojector>(true)
         ;
-	
+
+int DistFrameExporterClass = core::RegisterObject ( "exports distance frames in a file" )
+        .add<RealSenseDistFrameExporter>(true)
+        ;
+
+int DistFrameStreamerClass = core::RegisterObject ( "imports distance frames from a file" )
+        .add<RealSenseDistFrameStreamer>(true)
+        ;
+
 
 } // namespace rgbdtracking
 

@@ -83,8 +83,13 @@ public:
     Data<opencvplugin::ImageData> d_color ;
     Data<opencvplugin::ImageData> d_depth ;
 
+    Data<std::string> d_intrinsics ;
+    DataCallback c_intrinsics ;
+
+    rs2_intrinsics cam_intrinsics ;
+
     // Declare depth colorizer for pretty visualization of depth data
-	rs2::colorizer color_map;
+    rs2::colorizer color_map;
 
     // for pointcloud extraction
     rs2::pointcloud pc ;
@@ -98,7 +103,7 @@ public:
     // Start streaming with default recommended configuration
 
     // Using the context to create a rs2::align object.
-	// rs2::align allows you to perform aliment of depth frames to others
+    // rs2::align allows you to perform aliment of depth frames to others
 
     RealSenseCam()
         : Inherited()
@@ -106,7 +111,11 @@ public:
         , depthScale(initData(&depthScale,1,"depthScale","scale for the depth values, 1 for SR300, 10 for 435"))
         , d_color(initData(&d_color, "color", "RGB data image"))
         , d_depth(initData(&d_depth, "depth", "depth data image"))
+        , d_intrinsics(initData(&d_intrinsics, std::string("intrinsics.log"), "intrinsics", "path to file to write realsense intrinsics into"))
     {
+        c_intrinsics.addInput({&d_intrinsics});
+        c_intrinsics.addCallback(std::bind(&RealSenseCam::writeIntrinsics, this));
+
         this->f_listening.setValue(true) ;
         color = nullptr ;
         depth = nullptr ;
@@ -130,6 +139,23 @@ public:
 
 protected:
 
+    void writeIntrinsics () {
+        std::FILE* filestream = std::fopen(d_intrinsics.getValue().c_str(), "wb") ;
+        if (filestream == NULL) {
+            std::cout << "Check rights on intrins.log file" << std::endl ;
+            return ;
+        }
+        std::fwrite(&cam_intrinsics.width, sizeof(int), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.height, sizeof(int), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.ppx, sizeof(float), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.ppy, sizeof(float), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.fx, sizeof(float), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.fy, sizeof(float), 1, filestream) ;
+        std::fwrite(&cam_intrinsics.model, sizeof(rs2_distortion), 1, filestream) ;
+        std::fwrite(cam_intrinsics.coeffs, sizeof(float), 5, filestream) ;
+        std::fclose(filestream) ;
+    }
+
     void initAlign() {
         //rs2::pipeline_profile selection =
         pipe.start();
@@ -150,8 +176,10 @@ protected:
         color = new rs2::video_frame(processed.get_color_frame());
         depth = new rs2::depth_frame(processed.get_depth_frame());
 
+        cam_intrinsics = depth->get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
+        writeIntrinsics();
         // extract pointcloud
-        getpointcloud(*color, *depth) ;
+        //getpointcloud(*color, *depth) ;
 
         // Create depth and color image
         frame_to_cvmat(*color, *depth);
@@ -159,16 +187,16 @@ protected:
     }
 
     void acquireAligned() {
-		rs2::align align(RS2_STREAM_COLOR);
+        rs2::align align(RS2_STREAM_COLOR);
 
-		rs2::frameset frameset;
+        rs2::frameset frameset;
 
-		while (
-			!frameset.first_or_default(RS2_STREAM_DEPTH) || 
-			!frameset.first_or_default(RS2_STREAM_COLOR)
-		) {
-			frameset = pipe.wait_for_frames();
-		}
+        while (
+            !frameset.first_or_default(RS2_STREAM_DEPTH) ||
+            !frameset.first_or_default(RS2_STREAM_COLOR)
+        ) {
+            frameset = pipe.wait_for_frames();
+        }
 
         rs2::frameset processed = align.process(frameset);
 
@@ -179,7 +207,7 @@ protected:
         depth = new rs2::depth_frame(processed.get_depth_frame());
 
         // extract pointcloud
-        getpointcloud(*color, *depth) ;
+        //getpointcloud(*color, *depth) ;
 
         // Create depth and color image
         frame_to_cvmat(*color, *depth);
@@ -214,8 +242,6 @@ protected :
 //        cv::flip(depth8, depth16, AXIS) ;
 //        depth8 = depth16.clone() ;
         d_depth.endEdit();
-
-
     }
 
 
