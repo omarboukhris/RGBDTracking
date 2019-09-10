@@ -67,6 +67,7 @@ set(HEADER_FILES
 	src/realsense/RealSenseDeprojector.h
 	src/realsense/RealSensePointDeprojector.h
 	src/realsense/RealSenseGrabCut.h
+	src/realsense/RealSenseDistFrame.h
 
 	src/RenderingManager.h
 	src/MeshProcessing.h
@@ -109,6 +110,7 @@ set(SOURCE_FILES
 	src/realsense/RealSenseDeprojector.cpp
 	src/realsense/RealSensePointDeprojector.cpp
 	src/realsense/RealSenseGrabCut.cpp
+	src/realsense/RealSenseDistFrame.cpp
 
 	src/RenderingManager.cpp
 	src/MeshProcessing.cpp

@@ -31,6 +31,7 @@
 #include <sofa/core/visual/VisualParams.h>
 #include <sofa/defaulttype/BoundingBox.h>
 #include <sofa/core/objectmodel/Event.h>
+#include <sofa/core/objectmodel/KeypressedEvent.h>
 #include <sofa/simulation/AnimateBeginEvent.h>
 #include <sofa/simulation/AnimateEndEvent.h>
 #include <sofa/defaulttype/Mat.h>
@@ -80,9 +81,11 @@ public:
     Data<int> depthMode;
     Data<int> depthScale;
 
+    // RGBD image data
     Data<opencvplugin::ImageData> d_color ;
     Data<opencvplugin::ImageData> d_depth ;
 
+    // path to intrinsics file
     Data<std::string> d_intrinsics ;
     DataCallback c_intrinsics ;
 
@@ -101,9 +104,6 @@ public:
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     // Start streaming with default recommended configuration
-
-    // Using the context to create a rs2::align object.
-    // rs2::align allows you to perform aliment of depth frames to others
 
     RealSenseCam()
         : Inherited()
@@ -133,16 +133,12 @@ public:
         acquireAligned();
     }
 
-//    void handleEvent(sofa::core::objectmodel::Event */*event*/) {
-//        acquireAligned();
-//    }
-
 protected:
 
     void writeIntrinsics () {
         std::FILE* filestream = std::fopen(d_intrinsics.getValue().c_str(), "wb") ;
         if (filestream == NULL) {
-            std::cout << "Check rights on intrins.log file" << std::endl ;
+            std::cerr << "Check rights on intrins.log file" << std::endl ;
             return ;
         }
         std::fwrite(&cam_intrinsics.width, sizeof(int), 1, filestream) ;
@@ -156,10 +152,7 @@ protected:
         std::fclose(filestream) ;
     }
 
-    void initAlign() {
-        //rs2::pipeline_profile selection =
-        pipe.start();
-
+    frameset wait_for_frame() {
         rs2::align align(RS2_STREAM_COLOR);
         rs2::frameset frameset;
 
@@ -169,15 +162,25 @@ protected:
         ) {
             frameset = pipe.wait_for_frames();
         }
-
         rs2::frameset processed = align.process(frameset);
+
+        return processed;
+    }
+
+    void initAlign() {
+        //rs2::pipeline_profile selection =
+        pipe.start();
+
+        rs2::frameset processed = wait_for_frame();
 
         // Trying to get both color and aligned depth frames
         color = new rs2::video_frame(processed.get_color_frame());
         depth = new rs2::depth_frame(processed.get_depth_frame());
 
+        // fetch and save intrinsics to specified file
         cam_intrinsics = depth->get_profile().as<rs2::video_stream_profile>().get_intrinsics() ;
         writeIntrinsics();
+
         // extract pointcloud
         //getpointcloud(*color, *depth) ;
 
@@ -187,18 +190,7 @@ protected:
     }
 
     void acquireAligned() {
-        rs2::align align(RS2_STREAM_COLOR);
-
-        rs2::frameset frameset;
-
-        while (
-            !frameset.first_or_default(RS2_STREAM_DEPTH) ||
-            !frameset.first_or_default(RS2_STREAM_COLOR)
-        ) {
-            frameset = pipe.wait_for_frames();
-        }
-
-        rs2::frameset processed = align.process(frameset);
+        rs2::frameset processed = wait_for_frame() ;
 
         // Trying to get both color and aligned depth frames
         if (color) delete color ;
@@ -221,6 +213,9 @@ protected :
         points = pc.calculate(depth) ;
     }
 
+    /*!
+     * @brief convert RGB & D rs2::frames to cv::Mat and stores them in data container
+     */
     void frame_to_cvmat(rs2::video_frame color, rs2::depth_frame depth) {
         int widthc = color.get_width();
         int heightc = color.get_height();
@@ -229,8 +224,6 @@ protected :
             rgb0(heightc,widthc, CV_8UC3, (void*) color.get_data()),
             & bgr_image = *d_color.beginEdit() ;
         cv::cvtColor (rgb0, bgr_image, cv::COLOR_RGB2BGR); // bgr_image is output
-//        cv::flip(bgr_image, rgb0, AXIS) ;
-//        bgr_image = rgb0.clone() ;
         d_color.endEdit();
 
         int widthd = depth.get_width();
@@ -239,8 +232,6 @@ protected :
             depth16 = cv::Mat(heightd, widthd, CV_16U, (void*)depth.get_data()),
             & depth8 = *d_depth.beginEdit() ;
         depth16.convertTo(depth8, CV_8U, 1.f/64*depthScale.getValue()); //depth32 is output
-//        cv::flip(depth8, depth16, AXIS) ;
-//        depth8 = depth16.clone() ;
         d_depth.endEdit();
     }
 

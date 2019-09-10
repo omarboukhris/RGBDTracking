@@ -24,7 +24,7 @@
 ******************************************************************************/
 #pragma once
 
-//#include <CImgPlugin/CImgData.h>
+// sofa imports
 #include <sofa/defaulttype/Vec.h>
 #include <sofa/core/objectmodel/BaseObject.h>
 #include <sofa/core/objectmodel/DataFileName.h>
@@ -38,241 +38,40 @@
 #include <sofa/helper/rmath.h>
 #include <sofa/helper/OptionsGroup.h>
 
+// lib realsense
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
 
+// opencv
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 
+// pcl
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
 
+// c++ stl
 #include <fstream>
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <map>
 
+// external plugins
 #include <sofa/opencvplugin/OpenCVWidget.h>
 #include <RGBDTracking/src/realsense/RealSenseCam.h>
+#include <RGBDTracking/src/realsense/RealSenseDistFrame.h>
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/features/normal_3d.h>
 
 namespace sofa {
 
 namespace rgbdtracking {
 
-class RealSenseDistFrame {
-public :
-    typedef struct {
-        size_t _width ;
-        size_t _height ;
-        float* frame ;
-    } RealSenseDistStruct ;
-    RealSenseDistStruct _distdata ;
-
-    RealSenseDistFrame () {}
-
-    RealSenseDistFrame (RealSenseDistStruct diststr) {
-        _distdata = diststr ;
-    }
-
-    operator RealSenseDistStruct & () {
-        return getFrame() ;
-    }
-    operator const RealSenseDistStruct & () {
-        return getFrame() ;
-    }
-
-    inline size_t width() const {
-        return _distdata._width ;
-    }
-
-    inline size_t height() const {
-        return _distdata._height;
-    }
-
-    inline float* data() {
-        return _distdata.frame ;
-    }
-
-    inline RealSenseDistStruct & getFrame () {
-        return _distdata ;
-    }
-
-    friend std::istream& operator >> ( std::istream& in, RealSenseDistFrame&  )
-    {
-        return in;
-    }
-
-    friend std::ostream& operator << ( std::ostream& out, const RealSenseDistFrame&  )
-    {
-        return out;
-    }
-} ;
-
-class RealSenseDistFrameExporter : public core::objectmodel::BaseObject
-{
-
-public:
-    SOFA_CLASS( RealSenseDistFrameExporter , core::objectmodel::BaseObject);
-    typedef core::objectmodel::BaseObject Inherited;
-
-    Data<std::string>  d_filename ;
-    Data<RealSenseDistFrame>  d_distframe ;
-
-    Data<int> d_fpf; // frame per file
-
-    DataCallback c_distframe ;
-    DataCallback c_filename ;
-
-    std::FILE* filestream ;
-    size_t frame_count, file_id ;
-
-    RealSenseDistFrameExporter()
-        : d_filename (initData(&d_filename, "filename", "output filename"))
-        , d_distframe (initData(&d_distframe, "distframe", "link to distFrame data"))
-        , d_fpf(initData(&d_fpf, 18000, "fpf", "frame per file"))
-    {
-        c_distframe.addInput(&d_distframe);
-        c_distframe.addCallback(std::bind(&RealSenseDistFrameExporter::saveFrame, this));
-        filestream = nullptr ;
-        frame_count = 0 ;
-        file_id = 0 ;
-    }
-
-    ~RealSenseDistFrameExporter() {
-        std::fclose(filestream) ;
-    }
-
-    void updateFileStream () {
-        if (filestream == nullptr) {
-            std::string filename = processFileName() ;
-            filestream = std::fopen(filename.c_str(), "wb") ;
-            frame_count = 0 ;
-        }
-    }
-
-    void saveFrameToStream() {
-        RealSenseDistFrame distframe = d_distframe.getValue() ;
-        RealSenseDistFrame::RealSenseDistStruct diststruct = distframe.getFrame();
-
-        // write width and height
-        std::fwrite(&diststruct._width, sizeof(size_t), 1, filestream) ;
-        std::fwrite(&diststruct._height, sizeof(size_t), 1, filestream) ;
-
-        // write frame data
-        std::fwrite (
-            diststruct.frame,
-            sizeof(float),
-            diststruct._width * diststruct._height,
-            filestream
-        ) ;
-//        dump frame
-//        std::cout << "w/h" << diststruct._width << " " << diststruct._height << std::endl
-//                  << "##" << diststruct.frame[0] << std::endl ; ;
-//        for (int i = 0 ; i < diststruct._width * diststruct._height ; ++i) {
-//            std::cout << diststruct.frame[i] << ", " ;
-//        }
-//        std::cout << std::endl ;
-    }
-
-    void saveFrame () {
-        updateFileStream();
-        if (filestream == nullptr) {
-            std::cerr << "stream is unopened. check rights on file" << std::endl ;
-            return ;
-        }
-
-        saveFrameToStream();
-
-        if (++frame_count >= d_fpf.getValue()) {
-            std::fclose(filestream) ;
-            filestream = nullptr ;
-        }
-    }
-
-    std::string processFileName () {
-        std::string
-            extension = d_filename.getValue() , // starts as whole filename but ends up as extension
-            delimiter = "." ;
-        std::string filename = extension.substr(0, extension.find_last_of(delimiter)) ;
-        extension.erase(0, extension.find_last_of(delimiter)) ;
-        return filename + std::to_string(++file_id) + extension ;
-
-    }
-} ;
-
-class RealSenseDistFrameStreamer : public opencvplugin::streamer::BaseOpenCVStreamer
-{
-
-public:
-    SOFA_CLASS( RealSenseDistFrameStreamer, opencvplugin::streamer::BaseOpenCVStreamer);
-    typedef opencvplugin::streamer::BaseOpenCVStreamer Inherited;
-
-    Data<std::string>  d_filename ;
-    Data<RealSenseDistFrame>  d_distframe ;
-
-    DataCallback c_filename ;
-    std::FILE* filestream ;
-
-    RealSenseDistFrameStreamer()
-        : Inherited()
-        , d_filename (initData(&d_filename, "filename", "output filename"))
-        , d_distframe (initData(&d_distframe, "distframe", "link to distFrame data"))
-    {
-        c_filename.addInput(&d_filename);
-        c_filename.addCallback(std::bind(&RealSenseDistFrameStreamer::updateFileStream, this));
-        filestream = nullptr ;
-    }
-
-    virtual void decodeImage(cv::Mat & /*img*/) {
-        readFrame();
-    }
-
-    void updateFileStream () {
-        if (filestream == nullptr) {
-            filestream = std::fopen(d_filename.getValue().c_str(), "rb") ;
-        }
-    }
-
-    void readFrame () {
-        updateFileStream();
-        if (filestream == nullptr) {
-            std::cerr << "stream is unopened. check stream state before passing to function" << std::endl ;
-            return ;
-        }
-
-        RealSenseDistFrame::RealSenseDistStruct diststruct ;
-        // write width and height
-        std::fread(&diststruct._width, sizeof(size_t), 1, filestream) ;
-        std::fread(&diststruct._height, sizeof(size_t), 1, filestream) ;
-
-        // write frame data
-        diststruct.frame = new float[diststruct._width * diststruct._height] ;
-        std::fread (
-            diststruct.frame,
-            sizeof(float),
-            diststruct._width * diststruct._height,
-            filestream
-        ) ;
-        RealSenseDistFrame distFrm (diststruct) ;
-        d_distframe.setValue(distFrm);
-
-//        dump frame
-//        std::cout << "w/h" << diststruct._width << " " << diststruct._height << std::endl
-//                  << "##" << diststruct.frame[0] << std::endl ;
-//        std::cout <<"frame=" << std::endl;
-//        for (int i = 0 ; i < diststruct._width * diststruct._height ; ++i) {
-//            std::cout << diststruct.frame[i] << "," ;
-//        }
-//        std::cout << std::endl ;
-
-    }
-} ;
-
+/*!
+ * \brief The RealSenseDeprojector class
+ * Online / Offline 2D-3D deprojection
+ */
 class RealSenseDeprojector : public core::objectmodel::BaseObject
 {
 
@@ -286,9 +85,14 @@ public:
     Data<bool> d_drawpcl ;
     Data<helper::vector<defaulttype::Vector3> > d_output ;
 
+    // distance frame for offline reco
     Data<RealSenseDistFrame> d_distframe ;
+    // path to intrinsics file
     Data<std::string> d_intrinsics ;
     DataCallback c_intrinsics ;
+    // path to save snapshots to
+    Data<std::string> d_snap_path ;
+
 
     core::objectmodel::SingleLink<
         RealSenseDeprojector,
@@ -315,6 +119,7 @@ public:
         //offline reco
         , d_distframe(initData(&d_distframe, "distframe", "frame encoding pixel's distance from camera. used for offline deprojection"))
         , d_intrinsics(initData(&d_intrinsics, std::string("intrinsics.log"), "intrinsics", "path to realsense intrinsics file to read from"))
+        , d_snap_path(initData(&d_snap_path, std::string("."), "snap_path", "path to snap shots folder"))
 
         // needed for online reco
         , l_rs_cam(initLink("rscam", "link to realsense camera component - used for getting camera intrinsics"))
@@ -327,11 +132,48 @@ public:
         c_intrinsics.addInput({&d_intrinsics});
         c_intrinsics.addCallback(std::bind(&RealSenseDeprojector::readIntrinsics, this));
         readIntrinsics();
+        this->f_listening.setValue(true) ;
     }
 
     virtual ~RealSenseDeprojector () {
     }
 
+    void draw(const core::visual::VisualParams* vparams) {
+        if (!d_drawpcl.getValue()) {
+        // don't draw point cloud
+            return ;
+        }
+
+        if (m_colors.size() == m_pointcloud->size()) {
+            size_t i = 0 ;
+            for (const auto & pt : *m_pointcloud) {
+                auto color = m_colors[i++] ;
+                vparams->drawTool()->drawPoint(
+                    defaulttype::Vector3(pt.x, pt.y, pt.z),
+                    sofa::defaulttype::Vector4 (color[0],color[1],color[2],0)
+                );
+            }
+        } else {
+            for (const auto & pt : *m_pointcloud) {
+                vparams->drawTool()->drawPoint(
+                    defaulttype::Vector3(pt.x, pt.y, pt.z),
+                    sofa::defaulttype::Vector4 (0, 0, 255, 0)
+                );
+            }
+        }
+    }
+
+    void handleEvent(sofa::core::objectmodel::Event *event) {
+        if (sofa::core::objectmodel::KeypressedEvent* ev = dynamic_cast<sofa::core::objectmodel::KeypressedEvent*>(event)) {
+            //std::cout << ev->getKey() << std::endl ;
+
+            // screen shot : ctrl+shift+s
+            if ((int)ev->getKey() == 'P') {
+                exportSnapShot () ;
+            }
+        }
+    }
+private :
     void erode_mask (const cv::Mat & src, cv::Mat & erosion_dst, int erosion_size) {
         cv::Mat element = cv::getStructuringElement(
             cv::MORPH_ELLIPSE,
@@ -343,9 +185,62 @@ public:
         cv::dilate( src, erosion_dst , element );
     }
 
+    void exportSnapShot () {
+        static size_t i = 0 ; //< i is a snap shot 'id'
+        // set filenames
+        std::string
+            snapshot_color_filename =
+                d_snap_path.getValue() +
+                "/rgb_snap_" + std::to_string(i) + ".png",
+            snapshot_depth_filename =
+                d_snap_path.getValue() +
+                "/depth_snap_" + std::to_string(i) + ".png",
+            snapshot_dist_filename =
+                d_snap_path.getValue() +
+                "/dist_snap_" + std::to_string(i) + ".dist" ;
+        i++ ;
+
+        // get images to export
+        cv::Mat colormat = d_color.getValue().getImage(),
+                depthmat = d_depth.getValue().getImage() ;
+        // export pngs
+        cv::imwrite(snapshot_color_filename.c_str(), colormat) ;
+        std::cout << "(RealSenseCam) exported " << snapshot_color_filename << std::endl ;
+        cv::imwrite(snapshot_depth_filename.c_str(), depthmat) ;
+        std::cout << "(RealSenseCam) exported " << snapshot_depth_filename << std::endl ;
+
+        // export dist frames
+        this->_write_distFrame(snapshot_dist_filename);
+        std::cout << "(RealSenseCam) exported " << snapshot_dist_filename << std::endl ;
+    }
+
+    void _write_distFrame (std::string snapshot_dist_filename) {
+        RealSenseDistFrame distframe = d_distframe.getValue() ;
+        RealSenseDistFrame::RealSenseDistStruct diststruct = distframe.getFrame();
+
+        std::FILE* filestream = std::fopen(snapshot_dist_filename.c_str(), "wb") ;
+        if (filestream == nullptr) {
+            std::cerr << "(RealSenseDeprojector) check writing rights on file : "
+                     << snapshot_dist_filename
+                     << std::endl ;
+            return ;
+        }
+        // write width and height
+        std::fwrite(&diststruct._width, sizeof(size_t), 1, filestream) ;
+        std::fwrite(&diststruct._height, sizeof(size_t), 1, filestream) ;
+
+        // write frame data
+        std::fwrite (
+            diststruct.frame,
+            sizeof(float),
+            diststruct._width * diststruct._height,
+            filestream
+        ) ;
+        std::fclose(filestream) ;
+    }
 
     void readIntrinsics () {
-        std::FILE* filestream = std::fopen("/home/omar/projects/sofa/build/bin/intrinsics.log", "rb") ;
+        std::FILE* filestream = std::fopen(d_intrinsics.getValue().c_str(), "rb") ;
         if (filestream == NULL) {
             std::cout << "Check rights on intrins.log file" << std::endl ;
             return ;
@@ -369,32 +264,41 @@ public:
 
         if (diststruct._width != (size_t)(depth_im.cols/downSample) ||
             diststruct._height != (size_t)(depth_im.rows/downSample)) {
+            //std::cerr << "(deprojector) check sizes" << std::endl ;
             return ;
         }
 
         m_pointcloud->clear();
-        for (size_t i = 0 ; i < depth_im.rows/downSample ; ++i) {
-            for (size_t j = 0 ; j < depth_im.rows/downSample ; ++j) {
+        for (size_t i = 0 ; i < diststruct._height ; ++i) {
+            for (size_t j = 0 ; j < diststruct._width ; ++j) {
                 if (depth_im.at<const uchar>(downSample*i,downSample*j) > 0) {
                     // deprojection
                     float dist = diststruct.frame[i*diststruct._width+j] ;
-                    float
-                        point3d[3] = {0.f, 0.f, 0.f},
-                        point2d[2] = {downSample*i, downSample*j};
-                    rs2_deproject_pixel_to_point(
-                        point3d,
-                        &cam_intrinsics,
-                        point2d,
-                        dist
-                    );
-                    // set units
-                    pcl::PointXYZ pclpoint = pcl::PointXYZ(point3d[1], point3d[0], point3d[2]) ;
-                    // add units to result
-                    m_pointcloud->push_back(pclpoint);
+                    push_to_pointcloud(j, diststruct, downSample, i, dist);
                 }
             }
         }
 
+    }
+
+    void push_to_pointcloud(size_t j, RealSenseDistFrame::RealSenseDistStruct& diststruct, int downSample, size_t i, float dist)
+    {
+        float
+            point3d[3] = {0.f, 0.f, 0.f},
+            point2d[2] = {downSample*i, downSample*j};
+        rs2_deproject_pixel_to_point(
+            point3d,
+            &cam_intrinsics,
+            point2d,
+            dist
+        );
+        // set
+        diststruct.frame[i*diststruct._width+j] = dist ;
+        // set units // switch comments for alignment
+        //pcl::PointXYZ pclpoint = pcl::PointXYZ(-point3d[1], -point3d[0], -point3d[2]) ;
+        pcl::PointXYZ pclpoint = pcl::PointXYZ(point3d[1], point3d[0], point3d[2]) ;
+        // add units to result
+        m_pointcloud->push_back(pclpoint);
     }
 
     void deproject_image () {
@@ -426,28 +330,14 @@ public:
                 if (depth_im.at<const uchar>(downSample*i,downSample*j) > 0) {
                     // deprojection
                     float dist = depth.get_distance(downSample*j, downSample*i) ;
-                    float
-                        point3d[3] = {0.f, 0.f, 0.f},
-                        point2d[2] = {downSample*i, downSample*j};
-                    rs2_deproject_pixel_to_point(
-                        point3d,
-                        &cam_intrinsics,
-                        point2d,
-                        dist
-                    );
-                    // set
-                    diststruct.frame[i*diststruct._width+j] = dist ;
-                    // set units
-                    pcl::PointXYZ pclpoint = pcl::PointXYZ(point3d[1], point3d[0], point3d[2]) ;
-                    // add units to result
-                    m_pointcloud->push_back(pclpoint);
+                    push_to_pointcloud(j, diststruct, downSample, i, dist);
                 }
             }
         }
         d_distframe.endEdit();
 
         // once pcl extracted compute normals
-        // compute_pcl_normals() ;
+        //compute_pcl_normals() ;
     }
 
     void compute_pcl_normals () {
@@ -467,30 +357,7 @@ public:
         ne.compute (*m_cloud_normals);
     }
 
-    void draw(const core::visual::VisualParams* vparams) {
-        if (!d_drawpcl.getValue()) {
-        // don't draw point cloud
-            return ;
-        }
 
-        if (m_colors.size() == m_pointcloud->size()) {
-            size_t i = 0 ;
-            for (const auto & pt : *m_pointcloud) {
-                auto color = m_colors[i++] ;
-                vparams->drawTool()->drawPoint(
-                    defaulttype::Vector3(pt.x, pt.y, pt.z),
-                    sofa::defaulttype::Vector4 (color[0],color[1],color[2],0)
-                );
-            }
-        } else {
-            for (const auto & pt : *m_pointcloud) {
-                vparams->drawTool()->drawPoint(
-                    defaulttype::Vector3(pt.x, pt.y, pt.z),
-                    sofa::defaulttype::Vector4 (0, 0, 255, 0)
-                );
-            }
-        }
-    }
 };
 
 }

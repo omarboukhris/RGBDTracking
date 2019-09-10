@@ -24,7 +24,7 @@
 ******************************************************************************/
 
 
-#include "RealSenseDeprojector.h"
+#include "RealSenseDistFrame.h"
 #include <sofa/core/ObjectFactory.h>
 
 namespace sofa
@@ -40,11 +40,17 @@ using namespace boost;
 
 // Register in the Factory
 
-SOFA_DECL_CLASS (RealSenseDeprojector)
+SOFA_DECL_CLASS (RealSenseDistFrameExporter)
+SOFA_DECL_CLASS (RealSenseDistFrameStreamer)
 
-int RSDeprojectorClass = core::RegisterObject ( "deprojects realsense depth stream to 3d point cloud in sofa" )
-        .add<RealSenseDeprojector>(true)
+int DistFrameExporterClass = core::RegisterObject ( "exports distance frames in a file" )
+        .add<RealSenseDistFrameExporter>(true)
         ;
+
+int DistFrameStreamerClass = core::RegisterObject ( "imports distance frames from a file" )
+        .add<RealSenseDistFrameStreamer>(true)
+        ;
+
 
 } // namespace rgbdtracking
 
